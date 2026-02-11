@@ -1,21 +1,11 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" rx="120" fill="url(#bg)"/>
-  <!-- Crucifix structure -->
+  <!-- Crucifix only (no corpus) -->
   <path
-    d="M233 64h46v116h120v52H279v220h-46V232H113v-52h120z"
+    d="M228 60h56v120h120v56H284v216h-56V236H108v-56h120z"
     fill="white"
     fill-rule="evenodd"
     clip-rule="evenodd"
-  />
-  <!-- Corpus (stylized figure) -->
-  <circle cx="256" cy="204" r="20" fill="#f6f2ec"/>
-  <path
-    d="M214 228c8-10 20-14 42-14h0c22 0 34 4 42 14l36 40c8 9 7 21-2 28s-21 5-28-4l-26-31v152c0 13-11 24-24 24s-24-11-24-24V261l-26 31c-7 9-19 11-28 4s-10-19-2-28l36-40Z"
-    fill="#f1e9dc"
-  />
-  <path
-    d="M238 360h36l28 40c6 9 4 22-5 29-9 7-22 5-29-4l-30-40-30 40c-7 9-20 11-29 4-9-7-11-20-5-29l28-40Z"
-    fill="#e8dcc7"
   />
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
