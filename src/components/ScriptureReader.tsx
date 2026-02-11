@@ -230,7 +230,7 @@ export function ScriptureReader({ bookAbbrev, chapter, onChapterChange, onChapte
             <span className="font-sans text-[8px] tracking-[0.5em] uppercase text-cream/40">
               Scroll
             </span>
-            <div className="w-px h-8 bg-gradient-to-b from-gold/40 to-transparent" />
+            <div className="w-px h-8 bg-linear-to-b from-gold/40 to-transparent" />
           </div>
         </div>
 
@@ -242,6 +242,9 @@ export function ScriptureReader({ bookAbbrev, chapter, onChapterChange, onChapte
               number={verse.number}
               text={verse.text}
               index={index}
+              bookName={chapterData.book.name}
+              chapter={chapterData.chapter.number}
+              isOldTestament={chapterData.book.group === 'Antiguo Testamento'}
             />
           ))}
         </div>
