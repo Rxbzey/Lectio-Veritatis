@@ -50,39 +50,45 @@ function App() {
   }, []);
 
   return (
-    <>
+    <div lang="es" role="application" aria-label="The Living Scripture — Biblia Latinoamericana Digital">
       <MercuryCursor />
       <FilmGrain />
 
-      <DynamicNavbar
-        view={view}
-        totalVerses={chapterMeta.totalVerses}
-      />
-
-      {view === 'home' && (
-        <Hero
-          onGetStarted={() => goToReader('genesis', 1)}
-          onExploreBooks={() => setIndexOpen(true)}
+      <header role="banner">
+        <DynamicNavbar
+          view={view}
+          totalVerses={chapterMeta.totalVerses}
         />
-      )}
+      </header>
 
-      {view === 'reader' && (
-        <ScriptureReader
-          bookAbbrev={currentBook}
-          chapter={currentChapter}
-          onChapterChange={handleChapterChange}
-          onChapterLoaded={handleChapterLoaded}
-          onGoHome={goHome}
+      <main role="main" aria-live="polite">
+        {view === 'home' && (
+          <Hero
+            onGetStarted={() => goToReader('genesis', 1)}
+            onExploreBooks={() => setIndexOpen(true)}
+          />
+        )}
+
+        {view === 'reader' && (
+          <ScriptureReader
+            bookAbbrev={currentBook}
+            chapter={currentChapter}
+            onChapterChange={handleChapterChange}
+            onChapterLoaded={handleChapterLoaded}
+            onGoHome={goHome}
+          />
+        )}
+      </main>
+
+      <nav role="navigation" aria-label="Navegación de libros">
+        <NavigationOrb
+          isOpen={indexOpen}
+          onClose={() => setIndexOpen(false)}
+          onNavigate={(abbrev, chapter) => goToReader(abbrev, chapter)}
+          currentBook={currentBook}
+          currentChapter={currentChapter}
         />
-      )}
-
-      <NavigationOrb
-        isOpen={indexOpen}
-        onClose={() => setIndexOpen(false)}
-        onNavigate={(abbrev, chapter) => goToReader(abbrev, chapter)}
-        currentBook={currentBook}
-        currentChapter={currentChapter}
-      />
+      </nav>
 
       <SearchOverlay
         isOpen={searchOpen}
@@ -101,7 +107,7 @@ function App() {
         onOpenBooks={() => setIndexOpen(true)}
         onNavigateChapter={(abbrev, chapter) => goToReader(abbrev, chapter)}
       />
-    </>
+    </div>
   );
 }
 
