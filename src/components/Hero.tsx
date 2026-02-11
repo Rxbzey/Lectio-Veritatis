@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import gsap from 'gsap';
 import { MagneticButton } from './MagneticButton';
+import { getRandomVerse } from '../data/bibleVerses';
 
 interface HeroProps {
   onGetStarted: () => void;
@@ -12,8 +13,10 @@ export function Hero({ onGetStarted, onExploreBooks }: HeroProps) {
   const titleRef = useRef<HTMLHeadingElement>(null);
   const subtitleRef = useRef<HTMLParagraphElement>(null);
   const dividerRef = useRef<HTMLDivElement>(null);
-  const descRef = useRef<HTMLParagraphElement>(null);
+  const descRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
+
+  const verse = useMemo(() => getRandomVerse(), []);
 
   useEffect(() => {
     const tl = gsap.timeline({ delay: 0.6 });
@@ -52,7 +55,10 @@ export function Hero({ onGetStarted, onExploreBooks }: HeroProps) {
   }, []);
 
   return (
-    <div ref={containerRef} className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <div
+      ref={containerRef}
+      className="relative min-h-dvh flex flex-col items-center justify-center overflow-hidden transform -translate-y-6 md:-translate-y-10"
+    >
       {/* Background decorative cross */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
         <span
@@ -64,36 +70,40 @@ export function Hero({ onGetStarted, onExploreBooks }: HeroProps) {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 text-center px-6 md:px-12 max-w-5xl mx-auto">
+      <div className="relative z-10 text-center px-6 md:px-12 max-w-5xl mx-auto flex flex-col items-center ">
         {/* Top label */}
         <p
           ref={subtitleRef}
-          className="font-serif text-[9px] md:text-[10px] tracking-[0.6em] uppercase text-gold/40 mb-6 md:mb-8"
+          className="font-serif text-[9px] md:text-[10px] tracking-[0.6em] uppercase text-gold/40 "
         >
           Biblia Latinoamericana
         </p>
 
         {/* Divider */}
-        <div ref={dividerRef} className="w-16 md:w-24 h-px bg-gold/25 mx-auto mb-8 md:mb-12 origin-center" />
+        <div ref={dividerRef} className="w-16 md:w-24 h-px bg-gold/25 mx-auto origin-center" />
 
         {/* Main title */}
         <h1
           ref={titleRef}
-          className="font-serif text-5xl sm:text-6xl md:text-8xl lg:text-9xl xl:text-[9.5rem] text-cream-bright leading-[0.85] tracking-[-0.02em] mb-10 md:mb-16"
+          className="font-serif text-5xl sm:text-6xl md:text-8xl lg:text-9xl xl:text-[9.5rem] text-cream-bright leading-[0.85] tracking-[-0.02em]"
         >
           The Living<br />
           <span className="italic text-gold/80">Scripture</span>
         </h1>
 
-        <div className="w-full flex flex-col items-center gap-8 sm:gap-10 transform translate-y-8 md:translate-y-16">
-          {/* Description */}
-          <p
+        <div className="w-full flex flex-col items-center gap-6 sm:gap-8 transform translate-y-8 md:translate-y-16">
+          {/* Daily Verse */}
+          <div
             ref={descRef}
-            className="font-sans text-sm md:text-base text-cream/30 leading-relaxed text-center max-w-xl mx-auto mb-12 md:mb-16"
+            className="text-center max-w-xl mx-auto mb-12 md:mb-16"
           >
-            Una experiencia inmersiva para leer y explorar la Biblia.
-            Cada versículo revelado como una obra de arte tipográfica.
-          </p>
+            <p className="font-serif italic text-sm md:text-base text-cream/40 leading-relaxed">
+              “{verse.text}”
+            </p>
+            <span className="block mt-3 font-serif text-[10px] md:text-xs tracking-[0.3em] uppercase text-gold/30">
+              {verse.reference}
+            </span>
+          </div>
 
           {/* CTA Buttons */}
           <div ref={ctaRef} className="flex flex-col sm:flex-row items-center justify-center gap-10 sm:gap-16">
