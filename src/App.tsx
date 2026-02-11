@@ -7,6 +7,7 @@ import { SearchOverlay } from './components/SearchOverlay';
 import { DynamicNavbar } from './components/DynamicNavbar';
 import { FilmGrain } from './components/FilmGrain';
 import { MercuryCursor } from './components/MercuryCursor';
+import { DialNavigation } from './components/DialNavigation';
 import type { ChapterResponse } from './lib/api';
 
 type AppView = 'home' | 'reader';
@@ -53,16 +54,10 @@ function App() {
       <MercuryCursor />
       <FilmGrain />
 
-      {view === 'home' && (
-        <DynamicNavbar
-          view={view}
-          bookName={chapterMeta.bookName}
-          chapterNumber={currentChapter}
-          totalVerses={chapterMeta.totalVerses}
-          onGoHome={goHome}
-          onOpenSearch={() => setSearchOpen(true)}
-        />
-      )}
+      <DynamicNavbar
+        view={view}
+        totalVerses={chapterMeta.totalVerses}
+      />
 
       {view === 'home' && (
         <Hero
@@ -96,6 +91,15 @@ function App() {
           goToReader(abbrev, chapter);
           setSearchOpen(false);
         }}
+      />
+
+      <DialNavigation
+        view={view}
+        currentBook={currentBook}
+        currentChapter={currentChapter}
+        onGoHome={goHome}
+        onOpenBooks={() => setIndexOpen(true)}
+        onNavigateChapter={(abbrev, chapter) => goToReader(abbrev, chapter)}
       />
     </>
   );
