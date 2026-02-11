@@ -126,6 +126,7 @@ export function Verse({
 
       <div
         ref={verseRef}
+        data-verse-number={number}
         className="min-h-[45vh] md:min-h-[55vh] flex items-center justify-center py-12 md:py-20 will-change-transform"
       >
         <div className="w-full max-w-3xl mx-auto px-8 md:px-16 lg:px-20">

@@ -14,9 +14,23 @@ interface ScriptureReaderProps {
   onChapterChange: (abbrev: string, chapter: number) => void;
   onChapterLoaded?: (data: ChapterResponse) => void;
   onGoHome: () => void;
+  onScrollProgress?: (book: string, chapter: number, scrollPct: number, lastVerse: number, totalVerses: number) => void;
+  onChapterCompleted?: (book: string, chapter: number, lastVerse?: number) => void;
+  initialScrollPct?: number;
+  initialLastVerse?: number;
 }
 
-export function ScriptureReader({ bookAbbrev, chapter, onChapterChange, onChapterLoaded, onGoHome }: ScriptureReaderProps) {
+export function ScriptureReader({
+  bookAbbrev,
+  chapter,
+  onChapterChange,
+  onChapterLoaded,
+  onGoHome,
+  onScrollProgress,
+  onChapterCompleted,
+  initialScrollPct = 0,
+  initialLastVerse = 0,
+}: ScriptureReaderProps) {
   const [chapterData, setChapterData] = useState<ChapterResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [transitioning, setTransitioning] = useState(false);
@@ -41,7 +55,10 @@ export function ScriptureReader({ bookAbbrev, chapter, onChapterChange, onChapte
     }
   }, [onChapterLoaded]);
 
+  const restoredRef = useRef(false);
+
   useEffect(() => {
+    restoredRef.current = false;
     loadChapter(bookAbbrev, chapter);
     window.scrollTo({ top: 0 });
 
@@ -90,9 +107,31 @@ export function ScriptureReader({ bookAbbrev, chapter, onChapterChange, onChapte
     };
   }, [loading, chapterData]);
 
-  // Reading progress tracker
+  // Reading progress bar + restore last verse
   useEffect(() => {
     if (loading || !chapterData || !containerRef.current) return;
+
+    if (!restoredRef.current) {
+      restoredRef.current = true;
+      requestAnimationFrame(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        if (initialLastVerse > 0) {
+          const verseEl = container.querySelector(`[data-verse-number="${initialLastVerse}"]`);
+          if (verseEl && verseEl instanceof HTMLElement) {
+            verseEl.scrollIntoView({ block: 'center' });
+            return;
+          }
+        }
+
+        if (initialScrollPct > 0) {
+          const total = container.scrollHeight - window.innerHeight;
+          const targetScroll = total * initialScrollPct;
+          window.scrollTo({ top: targetScroll, behavior: 'smooth' });
+        }
+      });
+    }
 
     const onScroll = () => {
       const container = containerRef.current;
@@ -110,11 +149,29 @@ export function ScriptureReader({ bookAbbrev, chapter, onChapterChange, onChapte
           overwrite: true,
         });
       }
+
+      const verseEls = container.querySelectorAll('[data-verse-number]');
+      let lastVisible = 0;
+      verseEls.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.top < window.innerHeight * 0.8) {
+          const num = parseInt(el.getAttribute('data-verse-number') || '0', 10);
+          if (num > lastVisible) lastVisible = num;
+        }
+      });
+
+      if (onScrollProgress && chapterData) {
+        onScrollProgress(bookAbbrev, chapter, pct, lastVisible, chapterData.verses.length);
+      }
+
+      if (pct >= 0.92 && onChapterCompleted && chapterData) {
+        onChapterCompleted(bookAbbrev, chapter, lastVisible);
+      }
     };
 
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, [loading, chapterData]);
+  }, [loading, chapterData, bookAbbrev, chapter, onScrollProgress, onChapterCompleted, initialLastVerse, initialScrollPct]);
 
   const handleTransitionComplete = useCallback(() => {
     const next = getNextChapter(

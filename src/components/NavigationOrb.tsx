@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
 import type { Book } from '../lib/api';
 import { getBooks } from '../lib/api';
+import type { ChapterStatus, BookStatus } from '../hooks/useReadingProgress';
 
 interface NavigationOrbProps {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface NavigationOrbProps {
   currentBook: string;
   currentChapter: number;
   initialBook?: string | null;
+  getChapterStatus?: (book: string, chapter: number) => ChapterStatus;
+  getBookStatus?: (book: string, totalChapters: number) => BookStatus;
 }
 
 // Roman numeral converter
@@ -33,6 +36,8 @@ export function NavigationOrb({
   currentBook,
   currentChapter,
   initialBook = null,
+  getChapterStatus,
+  getBookStatus,
 }: NavigationOrbProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -184,6 +189,7 @@ export function NavigationOrb({
           const globalIdx = startIndex + i;
           const isActive = book.abbrev.pt === currentBook;
           const isHovered = hoveredBook === book.abbrev.pt;
+          const bookStatus = getBookStatus?.(book.abbrev.pt, book.chapters) ?? 'unread';
 
           return (
             <button
@@ -212,12 +218,24 @@ export function NavigationOrb({
                     ? 'text-gold italic'
                     : isHovered
                     ? 'text-gold italic'
+                    : bookStatus === 'completed'
+                    ? 'text-emerald-400/90'
+                    : bookStatus === 'in-progress'
+                    ? 'text-amber-400/80'
                     : 'text-cream/85'
                 }`}
-                style={{ opacity: isActive || isHovered ? 1 : 0.45 }}
+                style={{ opacity: isActive || isHovered ? 1 : bookStatus !== 'unread' ? 0.85 : 0.45 }}
               >
                 {book.name}
               </span>
+
+              {/* Reading status indicator */}
+              {bookStatus === 'completed' && (
+                <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[8px] text-emerald-400/50 z-10 pointer-events-none">✓</span>
+              )}
+              {bookStatus === 'in-progress' && (
+                <span className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-amber-400/40 z-10 pointer-events-none" />
+              )}
 
               {/* Active indicator — subtle gold dot */}
               {isActive && (
@@ -327,20 +345,35 @@ export function NavigationOrb({
 
             {/* Chapter grid */}
             <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1">
-              {Array.from({ length: selectedBookChapters }, (_, i) => i + 1).map((ch) => (
-                <button
-                  key={ch}
-                  onClick={() => handleChapterSelect(ch)}
-                  className={`book-item aspect-square flex items-center justify-center font-sans text-xs md:text-sm cursor-pointer transition-all duration-500 ${
-                    selectedBook === currentBook && ch === currentChapter
-                      ? 'text-gold bg-gold/8'
-                      : 'text-cream/60 hover:text-cream/80 hover:bg-cream/3'
-                  }`}
-                  data-cursor-hover
-                >
-                  {ch}
-                </button>
-              ))}
+              {Array.from({ length: selectedBookChapters }, (_, i) => i + 1).map((ch) => {
+                const chStatus = selectedBook ? (getChapterStatus?.(selectedBook, ch) ?? 'unread') : 'unread';
+                const isCurrent = selectedBook === currentBook && ch === currentChapter;
+
+                return (
+                  <button
+                    key={ch}
+                    onClick={() => handleChapterSelect(ch)}
+                    className={`book-item aspect-square flex items-center justify-center font-sans text-xs md:text-sm cursor-pointer transition-all duration-500 relative ${
+                      isCurrent
+                        ? 'text-gold bg-gold/8'
+                        : chStatus === 'completed'
+                        ? 'text-emerald-400/80 bg-emerald-400/5 hover:bg-emerald-400/10'
+                        : chStatus === 'in-progress'
+                        ? 'text-amber-400/80 bg-amber-400/5 hover:bg-amber-400/10'
+                        : 'text-cream/60 hover:text-cream/80 hover:bg-cream/3'
+                    }`}
+                    data-cursor-hover
+                  >
+                    {ch}
+                    {chStatus === 'completed' && !isCurrent && (
+                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-emerald-400/50" />
+                    )}
+                    {chStatus === 'in-progress' && !isCurrent && (
+                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-amber-400/50" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
