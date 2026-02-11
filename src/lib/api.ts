@@ -1,75 +1,6 @@
-const API_BASE = 'https://www.abibliadigital.com.br/api';
-const API_TOKEN = import.meta.env.VITE_BIBLIA_TOKEN || '';
+import { bibliaLatinoamericana } from '../data/biblia-latinoamericana';
 
-// ── In-memory + localStorage cache ──────────────────────────────────
-const memoryCache = new Map<string, { data: unknown; ts: number }>();
-const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
-const STORAGE_PREFIX = 'biblia_cache_';
-
-function cacheGet<T>(key: string): T | null {
-  // 1. Memory (fastest)
-  const mem = memoryCache.get(key);
-  if (mem && Date.now() - mem.ts < CACHE_TTL) return mem.data as T;
-
-  // 2. localStorage (persists across reloads)
-  try {
-    const raw = localStorage.getItem(STORAGE_PREFIX + key);
-    if (raw) {
-      const parsed = JSON.parse(raw) as { data: T; ts: number };
-      if (Date.now() - parsed.ts < CACHE_TTL) {
-        memoryCache.set(key, parsed); // promote to memory
-        return parsed.data;
-      }
-      localStorage.removeItem(STORAGE_PREFIX + key); // expired
-    }
-  } catch { /* ignore parse errors */ }
-
-  return null;
-}
-
-function cacheSet<T>(key: string, data: T): void {
-  const entry = { data, ts: Date.now() };
-  memoryCache.set(key, entry);
-  try {
-    localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(entry));
-  } catch { /* quota exceeded — memory cache still works */ }
-}
-
-// ── API fetch with automatic caching ────────────────────────────────
-interface RequestOptions {
-  method?: string;
-  body?: unknown;
-}
-
-async function apiFetch<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (API_TOKEN) {
-    headers['Authorization'] = `Bearer ${API_TOKEN}`;
-  }
-
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    method: options.method || 'GET',
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
-
-  if (!res.ok) {
-    throw new Error(`API Error: ${res.status} ${res.statusText}`);
-  }
-
-  return res.json() as Promise<T>;
-}
-
-async function cachedFetch<T>(cacheKey: string, endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const cached = cacheGet<T>(cacheKey);
-  if (cached) return cached;
-
-  const data = await apiFetch<T>(endpoint, options);
-  cacheSet(cacheKey, data);
-  return data;
-}
+// ── Types (kept compatible with previous API shape) ─────────────────
 
 export interface Book {
   abbrev: { pt: string; en: string };
@@ -116,32 +47,116 @@ export interface SearchResponse {
   verses: SearchResult[];
 }
 
+// ── Helpers: generate stable slug from book name ────────────────────
+
+function slugify(name: string): string {
+  return name
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // strip accents
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+// ── Build lookup structures from local data ─────────────────────────
+
+interface LocalBook {
+  id: number;
+  name: string;
+  testament: string;
+  chapters: { number: number; verses: { number: number; text: string }[] }[];
+}
+
+const localBooks = bibliaLatinoamericana.books as LocalBook[];
+
+// Map slug → local book for fast lookups
+const slugToBook = new Map<string, LocalBook>();
+const bookSlugs: string[] = [];
+
+for (const book of localBooks) {
+  const slug = slugify(book.name);
+  slugToBook.set(slug, book);
+  bookSlugs.push(slug);
+}
+
+function testamentGroup(testament: string): { group: string; author: string } {
+  return testament === 'AT'
+    ? { group: 'Antiguo Testamento', author: '' }
+    : { group: 'Nuevo Testamento', author: '' };
+}
+
+// ── Public API (same signatures, zero network calls) ────────────────
+
 export async function getBooks(): Promise<Book[]> {
-  return cachedFetch<Book[]>('books', '/books');
+  return localBooks.map((b) => {
+    const slug = slugify(b.name);
+    const { group } = testamentGroup(b.testament);
+    return {
+      abbrev: { pt: slug, en: slug },
+      author: '',
+      chapters: b.chapters.length,
+      group,
+      name: b.name,
+      testament: b.testament === 'AT' ? 'VT' : 'NT',
+    };
+  });
 }
 
 export async function getChapter(abbrev: string, chapter: number): Promise<ChapterResponse> {
-  return cachedFetch<ChapterResponse>(`chapter:${abbrev}:${chapter}`, `/verses/rvr/${abbrev}/${chapter}`);
+  const book = slugToBook.get(abbrev);
+  if (!book) throw new Error(`Libro no encontrado: ${abbrev}`);
+
+  const ch = book.chapters.find((c) => c.number === chapter);
+  if (!ch) throw new Error(`Capítulo ${chapter} no encontrado en ${book.name}`);
+
+  const { group, author } = testamentGroup(book.testament);
+
+  return {
+    book: {
+      abbrev: { pt: abbrev, en: abbrev },
+      name: book.name,
+      author,
+      group,
+      version: 'Biblia Latinoamericana',
+    },
+    chapter: {
+      number: ch.number,
+      verses: book.chapters.length, // total chapters (used by getNextChapter)
+    },
+    verses: ch.verses.map((v) => ({ number: v.number, text: v.text })),
+  };
 }
 
 export async function searchVerses(query: string): Promise<SearchResponse> {
   const normalizedQuery = query.toLowerCase().trim();
-  return cachedFetch<SearchResponse>(`search:${normalizedQuery}`, '/verses/search', {
-    method: 'POST',
-    body: {
-      version: 'rvr',
-      search: normalizedQuery,
-    },
-  });
+  const results: SearchResult[] = [];
+
+  for (const book of localBooks) {
+    const slug = slugify(book.name);
+    for (const ch of book.chapters) {
+      for (const v of ch.verses) {
+        if (v.text.toLowerCase().includes(normalizedQuery)) {
+          results.push({
+            book: { abbrev: { pt: slug, en: slug }, name: book.name },
+            chapter: ch.number,
+            number: v.number,
+            text: v.text,
+          });
+          if (results.length >= 80) break;
+        }
+      }
+      if (results.length >= 80) break;
+    }
+    if (results.length >= 80) break;
+  }
+
+  return {
+    occurrence: results.length,
+    version: 'Biblia Latinoamericana',
+    verses: results,
+  };
 }
 
-export const BOOK_ORDER = [
-  'gn','ex','lv','nm','dt','js','jz','rt','1sm','2sm','1rs','2rs','1cr','2cr',
-  'ed','ne','et','jó','sl','pv','ec','ct','is','jr','lm','ez','dn','os','jl',
-  'am','ob','jn','mq','na','hc','sf','ag','zc','ml',
-  'mt','mc','lc','jo','at','rm','1co','2co','gl','ef','fp','cl','1ts','2ts',
-  '1tm','2tm','tt','fm','hb','tg','1pe','2pe','1jo','2jo','3jo','jd','ap'
-];
+export const BOOK_ORDER = bookSlugs;
 
 export function getNextChapter(abbrev: string, chapter: number, totalChapters: number): { abbrev: string; chapter: number } | null {
   if (chapter < totalChapters) {

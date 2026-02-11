@@ -13,7 +13,7 @@ type AppView = 'home' | 'reader';
 
 function App() {
   const [view, setView] = useState<AppView>('home');
-  const [currentBook, setCurrentBook] = useState('gn');
+  const [currentBook, setCurrentBook] = useState('genesis');
   const [currentChapter, setCurrentChapter] = useState(1);
   const [searchOpen, setSearchOpen] = useState(false);
   const [indexOpen, setIndexOpen] = useState(false);
@@ -66,7 +66,7 @@ function App() {
 
       {view === 'home' && (
         <Hero
-          onGetStarted={() => goToReader('gn', 1)}
+          onGetStarted={() => goToReader('genesis', 1)}
           onExploreBooks={() => setIndexOpen(true)}
         />
       )}
