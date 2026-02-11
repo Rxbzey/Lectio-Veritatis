@@ -40,9 +40,9 @@ export function ChapterTransition({ isActive, onComplete }: ChapterTransitionPro
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[90] bg-void items-center justify-center hidden pointer-events-none"
+      className="fixed inset-0 z-90 bg-void items-center justify-center hidden pointer-events-none"
     >
-      <div className="w-16 h-[1px] bg-gold/40" />
+      <div className="w-16 h-px bg-gold/40" />
     </div>
   );
 }

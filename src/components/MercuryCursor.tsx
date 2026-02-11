@@ -87,7 +87,7 @@ export function MercuryCursor() {
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[9999] hidden md:block">
+    <div className="fixed inset-0 pointer-events-none z-9999 hidden md:block">
       {/* A small warm light — the soul seeking the Word */}
       <div
         ref={lightRef}

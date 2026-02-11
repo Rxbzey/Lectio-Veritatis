@@ -252,7 +252,7 @@ export function ScriptureReader({ bookAbbrev, chapter, onChapterChange, onChapte
         {/* End of chapter */}
         <div className="min-h-[55vh] flex items-center justify-center py-24">
           <div className="text-center space-y-6">
-            <div className="w-px h-16 bg-gradient-to-b from-transparent via-gold/30 to-transparent mx-auto" />
+            <div className="w-px h-16 bg-linear-to-b from-transparent via-gold/30 to-transparent mx-auto" />
             <p className="font-sans text-[9px] tracking-[0.55em] uppercase text-cream/25">
               Fin del capítulo {chapterData.chapter.number}
             </p>

@@ -86,7 +86,7 @@ export function SearchOverlay({ isOpen, onClose, onNavigate }: SearchOverlayProp
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-60 bg-black/[0.98] backdrop-blur-3xl flex flex-col overflow-hidden"
+      className="fixed inset-0 z-60 bg-black/98 backdrop-blur-3xl flex flex-col overflow-hidden"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-8 md:px-16 lg:px-24 pt-10 md:pt-14 shrink-0">
