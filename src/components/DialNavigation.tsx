@@ -1,24 +1,16 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
-import { getBooks } from '../lib/api';
-import type { Book } from '../lib/api';
-
-interface DialAction {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  onClick: () => void;
-}
+import { useDialActions } from '../hooks/useDialActions';
+import type { DialAction } from '../hooks/useDialActions';
 
 type AppView = 'home' | 'reader';
 
 interface DialNavigationProps {
   view: AppView;
   currentBook: string;
-  currentChapter: number;
   onGoHome: () => void;
   onOpenBooks: () => void;
-  onNavigateChapter: (abbrev: string, chapter: number) => void;
+  onOpenChapters: (abbrev: string) => void;
 }
 
 const RADIUS = 72;
@@ -37,100 +29,39 @@ function getPosition(index: number, count: number) {
 export function DialNavigation({
   view,
   currentBook,
-  currentChapter,
   onGoHome,
   onOpenBooks,
-  onNavigateChapter,
+  onOpenChapters,
 }: DialNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [showChapters, setShowChapters] = useState(false);
-  const [books, setBooks] = useState<Book[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
   const fabRef = useRef<HTMLButtonElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const chapterPanelRef = useRef<HTMLDivElement>(null);
 
   const isReader = view === 'reader';
-
-  // Load books data once
-  useEffect(() => {
-    getBooks().then(setBooks).catch(console.error);
-  }, []);
-
-  const currentBookData = useMemo(
-    () => books.find((b) => b.abbrev.pt === currentBook),
-    [books, currentBook]
-  );
-
-  const totalChapters = currentBookData?.chapters ?? 0;
-
-  const actions: DialAction[] = useMemo(() => {
-    const list: DialAction[] = [
-      {
-        id: 'home',
-        label: 'Inicio',
-        icon: (
-          <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 9.5L12 3l9 6.5" />
-            <path d="M19 13v6a1 1 0 01-1 1h-4v-5h-4v5H6a1 1 0 01-1-1v-6" />
-          </svg>
-        ),
-        onClick: onGoHome,
-      },
-      {
-        id: 'books',
-        label: 'Libros',
-        icon: (
-          <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
-            <path d="M8 7h8" />
-            <path d="M8 11h5" />
-          </svg>
-        ),
-        onClick: onOpenBooks,
-      },
-    ];
-
-    if (isReader) {
-      list.push({
-        id: 'chapters',
-        label: 'Capítulos',
-        icon: (
-          <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1" />
-            <rect x="14" y="3" width="7" height="7" rx="1" />
-            <rect x="3" y="14" width="7" height="7" rx="1" />
-            <rect x="14" y="14" width="7" height="7" rx="1" />
-          </svg>
-        ),
-        onClick: () => setShowChapters(true),
-      });
-    }
-
-    return list;
-  }, [isReader, onGoHome, onOpenBooks]);
+  const handleShowChapters = useCallback(() => {
+    onOpenChapters(currentBook);
+  }, [currentBook, onOpenChapters]);
+  const actions = useDialActions({
+    isReader,
+    onGoHome,
+    onOpenBooks,
+    onShowChapters: handleShowChapters,
+  });
 
   const toggle = useCallback(() => {
     setIsOpen((prev) => !prev);
-    setShowChapters(false);
   }, []);
 
   const handleAction = useCallback((action: DialAction) => {
     if (action.id === 'chapters') {
+      setIsOpen(false);
       action.onClick();
       return;
     }
     setIsOpen(false);
-    setShowChapters(false);
     action.onClick();
   }, []);
 
-  const handleChapterSelect = useCallback((ch: number) => {
-    setIsOpen(false);
-    setShowChapters(false);
-    onNavigateChapter(currentBook, ch);
-  }, [currentBook, onNavigateChapter]);
 
   // GSAP open/close animation for dial items
   useEffect(() => {
@@ -174,24 +105,6 @@ export function DialNavigation({
     }
   }, [isOpen, actions.length]);
 
-  // GSAP chapter panel animation
-  useEffect(() => {
-    if (!chapterPanelRef.current) return;
-    if (showChapters) {
-      gsap.fromTo(
-        chapterPanelRef.current,
-        { opacity: 0, y: 20, scale: 0.95 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power3.out' }
-      );
-      const items = chapterPanelRef.current.querySelectorAll('.ch-btn');
-      gsap.fromTo(
-        items,
-        { opacity: 0, scale: 0.8 },
-        { opacity: 1, scale: 1, duration: 0.3, stagger: 0.01, ease: 'power2.out', delay: 0.15 }
-      );
-    }
-  }, [showChapters]);
-
   // Entrance animation for the FAB itself
   useEffect(() => {
     if (fabRef.current) {
@@ -206,76 +119,26 @@ export function DialNavigation({
   // Close on Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (showChapters) {
-          setShowChapters(false);
-        } else if (isOpen) {
-          setIsOpen(false);
-        }
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, showChapters]);
+  }, [isOpen]);
 
   return (
     <>
       {/* Backdrop — click to close */}
-      {(isOpen || showChapters) && (
+      {isOpen && (
         <div
           className="fixed inset-0 z-40"
-          onClick={() => { setIsOpen(false); setShowChapters(false); }}
+          onClick={() => { setIsOpen(false); }}
           aria-hidden="true"
         />
       )}
 
-      <div
-        ref={containerRef}
-        className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50"
-      >
-        {/* Chapter picker panel */}
-        {showChapters && totalChapters > 0 && (
-          <div
-            ref={chapterPanelRef}
-            className="absolute bottom-16 md:bottom-18 right-0 w-64 sm:w-72 max-h-80 overflow-y-auto rounded-xl p-4"
-            style={{
-              background: 'rgba(10, 10, 8, 0.95)',
-              border: '1px solid rgba(201, 168, 76, 0.1)',
-              boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(20px)',
-              opacity: 0,
-            }}
-          >
-            {/* Header */}
-            <div className="mb-3 pb-2" style={{ borderBottom: '1px solid rgba(201,168,76,0.06)' }}>
-              <p className="font-sans text-[9px] tracking-[0.4em] uppercase text-gold/30">
-                Capítulos
-              </p>
-              <p className="font-serif text-sm text-cream/70 mt-1">
-                {currentBookData?.name ?? ''}
-              </p>
-            </div>
-
-            {/* Chapter grid */}
-            <div className="grid grid-cols-6 gap-1">
-              {Array.from({ length: totalChapters }, (_, i) => i + 1).map((ch) => (
-                <button
-                  key={ch}
-                  onClick={() => handleChapterSelect(ch)}
-                  className={`ch-btn aspect-square flex items-center justify-center rounded-md font-sans text-xs cursor-pointer transition-all duration-300 ${
-                    ch === currentChapter
-                      ? 'text-gold bg-gold/10'
-                      : 'text-cream/25 hover:text-cream/80 hover:bg-cream/5'
-                  }`}
-                  data-cursor-hover
-                >
-                  {ch}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
+      <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50">
         {/* Action items — positioned absolutely from FAB center */}
         <div className="absolute bottom-0 right-0 flex items-center justify-center w-12 h-12 md:w-14 md:h-14">
           {actions.map((action, i) => (
@@ -283,7 +146,7 @@ export function DialNavigation({
               key={action.id}
               ref={(el) => { itemRefs.current[i] = el; }}
               onClick={() => handleAction(action)}
-              className="absolute w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center cursor-pointer transition-colors duration-300 text-cream/50 hover:text-gold group"
+              className="absolute w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center cursor-pointer transition-colors duration-300 text-cream/80 hover:text-gold group"
               style={{
                 background: 'rgba(10, 10, 8, 0.85)',
                 border: '1px solid rgba(201, 168, 76, 0.12)',
@@ -297,7 +160,7 @@ export function DialNavigation({
               {action.icon}
               {/* Tooltip */}
               <span
-                className="absolute right-full mr-3 px-2.5 py-1 rounded font-sans text-[10px] tracking-[0.15em] uppercase text-cream/70 whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                className="absolute right-full mr-3 px-2.5 py-1 rounded font-sans text-[10px] tracking-[0.15em] uppercase text-cream/80 whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                 style={{
                   background: 'rgba(10, 10, 8, 0.9)',
                   border: '1px solid rgba(201, 168, 76, 0.08)',

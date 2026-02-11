@@ -211,15 +211,15 @@ export function ScriptureReader({ bookAbbrev, chapter, onChapterChange, onChapte
               {chapterData.book.name}
             </h1>
 
-            <div ref={metaRef} className="mt-6 md:mt-10 opacity-0">
+            <div ref={metaRef} className="mt-8 md:mt-12 opacity-0">
               <div className="flex items-center justify-center gap-6">
                 <div className="w-8 md:w-16 h-px bg-gold/20" />
-                <span className="font-sans text-[10px] md:text-xs tracking-[0.5em] uppercase text-gold/50">
+                <span className="font-sans text-[10px] md:text-xs tracking-[0.5em] uppercase text-gold/60">
                   Capítulo {chapterData.chapter.number}
                 </span>
                 <div className="w-8 md:w-16 h-px bg-gold/20" />
               </div>
-              <p className="font-sans text-[9px] md:text-[10px] tracking-[0.4em] uppercase text-cream/20 mt-4">
+              <p className="font-sans text-[9px] md:text-[10px] tracking-[0.4em] uppercase text-cream/40 mt-4">
                 {chapterData.book.author} · {chapterData.book.group}
               </p>
             </div>
@@ -253,13 +253,13 @@ export function ScriptureReader({ bookAbbrev, chapter, onChapterChange, onChapte
         <div className="min-h-[55vh] flex items-center justify-center py-24">
           <div className="text-center space-y-6">
             <div className="w-px h-16 bg-linear-to-b from-transparent via-gold/30 to-transparent mx-auto" />
-            <p className="font-sans text-[9px] tracking-[0.55em] uppercase text-cream/25">
+            <p className="font-sans text-[9px] tracking-[0.55em] uppercase text-cream/55">
               Fin del capítulo {chapterData.chapter.number}
             </p>
-            <p className="font-serif text-2xl md:text-[2.5rem] text-cream/30 italic tracking-[0.08em]">
+            <p className="font-serif text-2xl md:text-[2.5rem] text-cream/50 italic tracking-[0.08em]">
               {chapterData.book.name}
             </p>
-            <p className="font-sans text-[10px] tracking-[0.45em] uppercase text-gold/40">
+            <p className="font-sans text-[10px] tracking-[0.45em] uppercase text-gold/60">
               continua la lectura
             </p>
 
@@ -270,7 +270,7 @@ export function ScriptureReader({ bookAbbrev, chapter, onChapterChange, onChapte
                 className="group relative cursor-pointer py-2"
                 data-cursor-hover
               >
-                <span className="font-serif text-[12px] md:text-[13px] tracking-[0.4em] uppercase text-cream/35 group-hover:text-cream/70 transition-colors duration-700">
+                <span className="font-serif text-[12px] md:text-[13px] tracking-[0.4em] uppercase text-cream/55 group-hover:text-cream/70 transition-colors duration-700">
                   Finalizar
                 </span>
                 <span

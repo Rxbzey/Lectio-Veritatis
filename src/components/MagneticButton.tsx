@@ -61,7 +61,7 @@ export function MagneticButton({ children, onClick, variant = 'secondary', class
         className={`relative z-10 font-serif text-[13px] md:text-sm tracking-[0.35em] uppercase transition-colors duration-700 ${
           isPrimary
             ? 'text-gold group-hover:text-cream-bright'
-            : 'text-cream/40 group-hover:text-cream/70'
+            : 'text-cream/70 group-hover:text-cream/70'
         }`}
       >
         {children}

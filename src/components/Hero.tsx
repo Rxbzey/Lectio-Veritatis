@@ -62,7 +62,7 @@ export function Hero({ onGetStarted, onExploreBooks }: HeroProps) {
       {/* Background decorative cross */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
         <span
-          className="font-serif text-[32rem] md:text-[52rem] leading-none text-cream/3"
+          className="font-serif text-[32rem] md:text-[52rem] leading-none text-cream/5"
           style={{ fontWeight: 900, textShadow: '0 0 40px rgba(236,231,219,0.08)' }}
         >
           ✝
@@ -97,10 +97,10 @@ export function Hero({ onGetStarted, onExploreBooks }: HeroProps) {
             ref={descRef}
             className="text-center max-w-xl mx-auto mb-12 md:mb-16"
           >
-            <p className="font-serif italic text-sm md:text-base text-cream/40 leading-relaxed">
+            <p className="font-serif italic text-sm md:text-base text-cream/90 leading-relaxed">
               “{verse.text}”
             </p>
-            <span className="block mt-3 font-serif text-[10px] md:text-xs tracking-[0.3em] uppercase text-gold/30">
+            <span className="block mt-3 font-serif text-[10px] md:text-xs tracking-[0.3em] uppercase text-gold">
               {verse.reference}
             </span>
           </div>

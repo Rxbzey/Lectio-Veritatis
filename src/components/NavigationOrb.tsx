@@ -9,6 +9,7 @@ interface NavigationOrbProps {
   onNavigate: (abbrev: string, chapter: number) => void;
   currentBook: string;
   currentChapter: number;
+  initialBook?: string | null;
 }
 
 // Roman numeral converter
@@ -25,19 +26,29 @@ function toRoman(num: number): string {
   return result;
 }
 
-export function NavigationOrb({ isOpen, onClose, onNavigate, currentBook, currentChapter }: NavigationOrbProps) {
+export function NavigationOrb({
+  isOpen,
+  onClose,
+  onNavigate,
+  currentBook,
+  currentChapter,
+  initialBook = null,
+}: NavigationOrbProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [hoveredBook, setHoveredBook] = useState<string | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number>(-1);
-  const [selectedBook, setSelectedBook] = useState<string | null>(null);
-  const [selectedBookChapters, setSelectedBookChapters] = useState<number>(0);
+  const [manualSelectedBook, setManualSelectedBook] = useState<string | null>(null);
 
   useEffect(() => {
     getBooks().then(setBooks).catch(console.error);
   }, []);
+
+  const selectedBook = manualSelectedBook ?? (isOpen ? initialBook : null);
+  const selectedBookData = books.find((b) => b.abbrev.pt === selectedBook);
+  const selectedBookChapters = selectedBookData?.chapters ?? 0;
 
   // Panel enter animation — stagger cascade
   useEffect(() => {
@@ -122,8 +133,7 @@ export function NavigationOrb({ isOpen, onClose, onNavigate, currentBook, curren
   }, []);
 
   const handleBookClick = (book: Book) => {
-    setSelectedBook(book.abbrev.pt);
-    setSelectedBookChapters(book.chapters);
+    setManualSelectedBook(book.abbrev.pt);
   };
 
   const handleChapterSelect = (chapter: number) => {
@@ -141,14 +151,14 @@ export function NavigationOrb({ isOpen, onClose, onNavigate, currentBook, curren
         ease: 'power2.in',
         onComplete: () => {
           onClose();
-          setSelectedBook(null);
+          setManualSelectedBook(null);
           setHoveredBook(null);
           setHoveredIndex(-1);
         },
       });
     } else {
       onClose();
-      setSelectedBook(null);
+      setManualSelectedBook(null);
     }
   };
 
@@ -202,7 +212,7 @@ export function NavigationOrb({ isOpen, onClose, onNavigate, currentBook, curren
                     ? 'text-gold italic'
                     : isHovered
                     ? 'text-gold italic'
-                    : 'text-cream/45'
+                    : 'text-cream/85'
                 }`}
                 style={{ opacity: isActive || isHovered ? 1 : 0.45 }}
               >
@@ -307,8 +317,8 @@ export function NavigationOrb({ isOpen, onClose, onNavigate, currentBook, curren
         ) : (
           <div>
             <button
-              onClick={() => setSelectedBook(null)}
-              className="font-sans text-[10px] tracking-[0.35em] uppercase text-cream/25 hover:text-gold mb-14 cursor-pointer transition-colors duration-500 flex items-center gap-4"
+              onClick={() => setManualSelectedBook(null)}
+              className="font-sans text-[10px] tracking-[0.35em] uppercase text-cream/55 hover:text-gold mb-14 cursor-pointer transition-colors duration-500 flex items-center gap-4"
               data-cursor-hover
             >
               <span className="w-5 h-px bg-current" />
@@ -324,7 +334,7 @@ export function NavigationOrb({ isOpen, onClose, onNavigate, currentBook, curren
                   className={`book-item aspect-square flex items-center justify-center font-sans text-xs md:text-sm cursor-pointer transition-all duration-500 ${
                     selectedBook === currentBook && ch === currentChapter
                       ? 'text-gold bg-gold/8'
-                      : 'text-cream/20 hover:text-cream/80 hover:bg-cream/3'
+                      : 'text-cream/60 hover:text-cream/80 hover:bg-cream/3'
                   }`}
                   data-cursor-hover
                 >

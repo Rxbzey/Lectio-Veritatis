@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { useScrollProgress } from '../hooks/useScrollProgress';
 
@@ -14,18 +14,7 @@ export function DynamicNavbar({
   totalVerses
 }: DynamicNavbarProps) {
   const navRef = useRef<HTMLElement>(null);
-  
-  const [scrolled, setScrolled] = useState(false);
   const { progress, isScrolling } = useScrollProgress();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 40);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   useEffect(() => {
     if (navRef.current) {

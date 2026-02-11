@@ -3,7 +3,6 @@ import { useSmoothScroll } from './hooks/useSmoothScroll';
 import { Hero } from './components/Hero';
 import { ScriptureReader } from './components/ScriptureReader';
 import { NavigationOrb } from './components/NavigationOrb';
-import { SearchOverlay } from './components/SearchOverlay';
 import { DynamicNavbar } from './components/DynamicNavbar';
 import { FilmGrain } from './components/FilmGrain';
 import { MercuryCursor } from './components/MercuryCursor';
@@ -16,8 +15,8 @@ function App() {
   const [view, setView] = useState<AppView>('home');
   const [currentBook, setCurrentBook] = useState('genesis');
   const [currentChapter, setCurrentChapter] = useState(1);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [indexOpen, setIndexOpen] = useState(false);
+  const [chapterPickerBook, setChapterPickerBook] = useState<string | null>(null);
   const [chapterMeta, setChapterMeta] = useState<{ bookName: string; totalVerses: number }>({
     bookName: '',
     totalVerses: 0,
@@ -83,29 +82,31 @@ function App() {
       <nav role="navigation" aria-label="Navegación de libros">
         <NavigationOrb
           isOpen={indexOpen}
-          onClose={() => setIndexOpen(false)}
+          onClose={() => {
+            setIndexOpen(false);
+            setChapterPickerBook(null);
+          }}
           onNavigate={(abbrev, chapter) => goToReader(abbrev, chapter)}
           currentBook={currentBook}
           currentChapter={currentChapter}
+          initialBook={chapterPickerBook}
         />
       </nav>
 
-      <SearchOverlay
-        isOpen={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        onNavigate={(abbrev, chapter) => {
-          goToReader(abbrev, chapter);
-          setSearchOpen(false);
-        }}
-      />
+     
 
       <DialNavigation
         view={view}
         currentBook={currentBook}
-        currentChapter={currentChapter}
         onGoHome={goHome}
-        onOpenBooks={() => setIndexOpen(true)}
-        onNavigateChapter={(abbrev, chapter) => goToReader(abbrev, chapter)}
+        onOpenBooks={() => {
+          setChapterPickerBook(null);
+          setIndexOpen(true);
+        }}
+        onOpenChapters={(abbrev) => {
+          setChapterPickerBook(abbrev);
+          setIndexOpen(true);
+        }}
       />
     </div>
   );
