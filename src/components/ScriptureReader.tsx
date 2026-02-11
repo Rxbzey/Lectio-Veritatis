@@ -235,7 +235,7 @@ export function ScriptureReader({ bookAbbrev, chapter, onChapterChange, onChapte
         </div>
 
         {/* Verses */}
-        <div className="relative z-10">
+        <div className="relative z-10 mx-auto">
           {chapterData.verses.map((verse, index) => (
             <Verse
               key={`${bookAbbrev}-${chapter}-${verse.number}`}
