@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --color-gold: #c9a84c;
+  --color-gold-dim: rgba(201, 168, 76, 0.25);
+  --color-gold-glow: rgba(201, 168, 76, 0.08);
+  --color-parchment: #f5f0e8;
+  --color-ink: #0a0a08;
+  --color-void: #000000;
+  --color-void-light: #080808;
+  --color-void-mid: #111111;
+  --color-cream: #d4cfc5;
+  --color-cream-bright: #ece7db;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+}
+
+@media (pointer: fine) {
+  *, *::before, *::after {
+    cursor: none !important;
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #000000;
+  color: var(--color-cream);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+::selection {
+  background-color: var(--color-gold-dim);
+  color: var(--color-cream-bright);
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
+#three-grain {
+  position: fixed !important;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+}
+
+/* Magnetic hover effect for interactive elements */
+.mag-hover {
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Chapter number watermark */
+.chapter-watermark {
+  font-size: clamp(15rem, 30vw, 40rem);
+  line-height: 0.8;
+  font-weight: 900;
+  color: rgba(201, 168, 76, 0.04);
+  text-shadow: 0 0 60px rgba(201, 168, 76, 0.06);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  font-family: var(--font-serif);
+}
