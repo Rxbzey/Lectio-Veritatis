@@ -6,9 +6,11 @@ import { getRandomVerse } from '../data/bibleVerses';
 interface HeroProps {
   onGetStarted: () => void;
   onExploreBooks: () => void;
+  onContinueReading?: () => void;
+  continueTarget?: { book: string; chapter: number } | null;
 }
 
-export function Hero({ onGetStarted, onExploreBooks }: HeroProps) {
+export function Hero({ onGetStarted, onExploreBooks, onContinueReading, continueTarget = null }: HeroProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const subtitleRef = useRef<HTMLParagraphElement>(null);
@@ -17,6 +19,13 @@ export function Hero({ onGetStarted, onExploreBooks }: HeroProps) {
   const ctaRef = useRef<HTMLDivElement>(null);
 
   const verse = useMemo(() => getRandomVerse(), []);
+  const hasProgress = Boolean(onContinueReading && continueTarget);
+
+  const formatBook = (value: string) =>
+    value
+      .split(/[-_\s]+/)
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+      .join(' ');
 
   useEffect(() => {
     const tl = gsap.timeline({ delay: 0.6 });
@@ -107,9 +116,20 @@ export function Hero({ onGetStarted, onExploreBooks }: HeroProps) {
 
           {/* CTA Buttons */}
           <div ref={ctaRef} className="flex flex-col sm:flex-row items-center justify-center gap-10 sm:gap-16">
-            <MagneticButton onClick={onGetStarted} variant="primary" className="py-3">
-              Comenzar a Leer
-            </MagneticButton>
+            <div className="flex flex-col items-center gap-2">
+              <MagneticButton
+                onClick={hasProgress ? onContinueReading! : onGetStarted}
+                variant="primary"
+                className="py-3"
+              >
+                {hasProgress ? 'Continuar leyendo' : 'Comenzar a Leer'}
+              </MagneticButton>
+              {hasProgress && continueTarget && (
+                <span className="font-serif text-[10px] tracking-[0.35em] uppercase text-gold/70">
+                  {formatBook(continueTarget.book)} · Capítulo {continueTarget.chapter}
+                </span>
+              )}
+            </div>
 
             <MagneticButton onClick={onExploreBooks} variant="secondary" className="py-3">
               Explorar Libros

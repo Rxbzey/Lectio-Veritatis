@@ -133,7 +133,10 @@ export function ScriptureReader({
       });
     }
 
-    const onScroll = () => {
+    let rafId: number | null = null;
+
+    const updateProgress = () => {
+      rafId = null;
       const container = containerRef.current;
       if (!container) return;
       const rect = container.getBoundingClientRect();
@@ -169,8 +172,17 @@ export function ScriptureReader({
       }
     };
 
+    const onScroll = () => {
+      if (rafId != null) return;
+      rafId = requestAnimationFrame(updateProgress);
+    };
+
+    updateProgress();
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (rafId != null) cancelAnimationFrame(rafId);
+    };
   }, [loading, chapterData, bookAbbrev, chapter, onScrollProgress, onChapterCompleted, initialLastVerse, initialScrollPct]);
 
   const handleTransitionComplete = useCallback(() => {

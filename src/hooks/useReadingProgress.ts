@@ -15,8 +15,14 @@ export interface BookProgress {
   chapters: Record<number, ChapterProgress>;
 }
 
+export interface BookSummary {
+  tracked: number;
+  completed: number;
+}
+
 export interface ReadingProgressData {
   books: Record<string, BookProgress>;
+  summaries: Record<string, BookSummary>;
   lastPosition: {
     book: string;
     chapter: number;
@@ -32,15 +38,24 @@ export interface ReadingProgressStore extends ReadingProgressData {
   getBookStatus: (book: string, totalChapters: number) => BookStatus;
   setLastPosition: (book: string, chapter: number) => void;
   getLastPosition: () => { book: string; chapter: number } | null;
+  getResumeTarget: () => { book: string; chapter: number } | null;
 }
 
-const STORAGE_KEY = 'living-scripture-reading-progress:v1';
+export const selectResumeTarget = (state: ReadingProgressStore) =>
+  state.lastPosition ?? computeLatestChapter(state.books);
+
+const STORAGE_KEY = 'living-scripture-reading-progress:v2';
+
+const initialState: ReadingProgressData = {
+  books: {},
+  summaries: {},
+  lastPosition: null,
+};
 
 export const useReadingProgressStore = create<ReadingProgressStore>()(
   persist(
     (set, get) => ({
-      books: {},
-      lastPosition: null,
+      ...initialState,
 
       updateChapterScroll: (book, chapter, scrollPct, lastVerse, totalVerses) =>
         set((state) => {
@@ -52,6 +67,7 @@ export const useReadingProgressStore = create<ReadingProgressStore>()(
 
           const newStatus: ChapterStatus =
             scrollPct >= 0.92 || lastVerse >= totalVerses ? 'completed' : 'in-progress';
+          const prevStatus: ChapterStatus = existing?.status ?? 'unread';
 
           return {
             ...state,
@@ -69,6 +85,14 @@ export const useReadingProgressStore = create<ReadingProgressStore>()(
                 },
               },
             },
+            summaries:
+              prevStatus === newStatus
+                ? state.summaries
+                : applySummaryChange(
+                    state.summaries,
+                    book,
+                    adjustSummary(state.summaries[book], prevStatus, newStatus)
+                  ),
           };
         }),
 
@@ -77,6 +101,9 @@ export const useReadingProgressStore = create<ReadingProgressStore>()(
           const currentBook = state.books[book];
           const currentChapters = currentBook?.chapters ?? {};
           const existing = currentChapters[chapter];
+          const prevStatus: ChapterStatus = existing?.status ?? 'unread';
+
+          if (prevStatus === 'completed') return state;
 
           return {
             ...state,
@@ -94,6 +121,11 @@ export const useReadingProgressStore = create<ReadingProgressStore>()(
                 },
               },
             },
+            summaries: applySummaryChange(
+              state.summaries,
+              book,
+              adjustSummary(state.summaries[book], prevStatus, 'completed')
+            ),
           };
         }),
 
@@ -102,18 +134,9 @@ export const useReadingProgressStore = create<ReadingProgressStore>()(
       getChapterLastVerse: (book, chapter) => get().books[book]?.chapters[chapter]?.lastVerse ?? 0,
 
       getBookStatus: (book, totalChapters) => {
-        const bp = get().books[book];
-        if (!bp) return 'unread';
-
-        const chapters = bp.chapters;
-        const chapterNumbers = Object.keys(chapters).map(Number);
-        if (chapterNumbers.length === 0) return 'unread';
-
-        const completedCount = chapterNumbers.filter(
-          (ch) => chapters[ch]?.status === 'completed'
-        ).length;
-
-        if (completedCount >= totalChapters) return 'completed';
+        const summary = get().summaries[book];
+        if (!summary || summary.tracked === 0) return 'unread';
+        if (summary.completed >= totalChapters) return 'completed';
         return 'in-progress';
       },
 
@@ -124,7 +147,114 @@ export const useReadingProgressStore = create<ReadingProgressStore>()(
         })),
 
       getLastPosition: () => get().lastPosition,
+
+      getResumeTarget: () => {
+        const last = get().lastPosition;
+        if (last) return last;
+        return computeLatestChapter(get().books);
+      },
     }),
-    { name: STORAGE_KEY }
+    {
+      name: STORAGE_KEY,
+      version: 2,
+      partialize: (state) => ({
+        books: state.books,
+        summaries: state.summaries,
+        lastPosition: state.lastPosition,
+      }),
+      migrate: (persisted, version) => {
+        if (!persisted || typeof persisted !== 'object') {
+          return initialState;
+        }
+
+        const stored = persisted as Partial<ReadingProgressData>;
+        const books = stored.books ?? {};
+        const lastPosition = stored.lastPosition ?? null;
+        const summaries =
+          version < 2 || !('summaries' in stored) || !stored.summaries
+            ? buildSummaries(books)
+            : stored.summaries;
+
+        return {
+          books,
+          summaries,
+          lastPosition,
+        } satisfies ReadingProgressData;
+      },
+    }
   )
 );
+
+function adjustSummary(
+  summary: BookSummary | undefined,
+  prevStatus: ChapterStatus,
+  nextStatus: ChapterStatus
+): BookSummary | undefined {
+  if (prevStatus === nextStatus) return summary;
+
+  let tracked = summary?.tracked ?? 0;
+  let completed = summary?.completed ?? 0;
+
+  if (prevStatus === 'unread' && nextStatus !== 'unread') {
+    tracked += 1;
+  } else if (prevStatus !== 'unread' && nextStatus === 'unread') {
+    tracked = Math.max(0, tracked - 1);
+  }
+
+  if (prevStatus !== 'completed' && nextStatus === 'completed') {
+    completed += 1;
+  } else if (prevStatus === 'completed' && nextStatus !== 'completed') {
+    completed = Math.max(0, completed - 1);
+  }
+
+  if (tracked <= 0 && completed <= 0) return undefined;
+  return { tracked, completed };
+}
+
+function applySummaryChange(
+  summaries: Record<string, BookSummary>,
+  book: string,
+  nextSummary: BookSummary | undefined
+): Record<string, BookSummary> {
+  if (nextSummary === undefined) {
+    if (!(book in summaries)) return summaries;
+    const cloned = { ...summaries };
+    delete cloned[book];
+    return cloned;
+  }
+  return {
+    ...summaries,
+    [book]: nextSummary,
+  };
+}
+
+function buildSummaries(books: Record<string, BookProgress>): Record<string, BookSummary> {
+  const summaries: Record<string, BookSummary> = {};
+  Object.entries(books).forEach(([book, progress]) => {
+    let tracked = 0;
+    let completed = 0;
+    Object.values(progress.chapters).forEach((chapter) => {
+      if (chapter.status !== 'unread') tracked += 1;
+      if (chapter.status === 'completed') completed += 1;
+    });
+    if (tracked > 0 || completed > 0) {
+      summaries[book] = { tracked, completed };
+    }
+  });
+  return summaries;
+}
+
+function computeLatestChapter(books: Record<string, BookProgress>): { book: string; chapter: number } | null {
+  let latest: { book: string; chapter: number; updatedAt: number } | null = null;
+  Object.entries(books).forEach(([book, progress]) => {
+    Object.entries(progress.chapters).forEach(([chapterStr, info]) => {
+      if (!info) return;
+      if (!latest || info.updatedAt > latest.updatedAt) {
+        latest = { book, chapter: Number(chapterStr), updatedAt: info.updatedAt };
+      }
+    });
+  });
+  if (!latest) return null;
+  const { book, chapter } = latest;
+  return { book, chapter };
+}

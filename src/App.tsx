@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useSmoothScroll } from './hooks/useSmoothScroll';
-import { useReadingProgressStore } from './hooks/useReadingProgress';
+import { useReadingProgressStore, selectResumeTarget } from './hooks/useReadingProgress';
 import { Hero } from './components/Hero';
 import { ScriptureReader } from './components/ScriptureReader';
 import { NavigationOrb } from './components/NavigationOrb';
@@ -30,6 +30,7 @@ function App() {
   const getChapterStatus = useReadingProgressStore((state) => state.getChapterStatus);
   const getBookStatus = useReadingProgressStore((state) => state.getBookStatus);
   const setLastPosition = useReadingProgressStore((state) => state.setLastPosition);
+  const resumeTarget = useReadingProgressStore(selectResumeTarget);
 
   const goToReader = useCallback((abbrev: string, chapter: number) => {
     setCurrentBook(abbrev);
@@ -48,7 +49,8 @@ function App() {
   const handleChapterChange = useCallback((abbrev: string, chapter: number) => {
     setCurrentBook(abbrev);
     setCurrentChapter(chapter);
-  }, []);
+    setLastPosition(abbrev, chapter);
+  }, [setLastPosition]);
 
   const handleChapterLoaded = useCallback((data: ChapterResponse) => {
     setChapterMeta({
@@ -74,6 +76,8 @@ function App() {
           <Hero
             onGetStarted={() => goToReader('genesis', 1)}
             onExploreBooks={() => setIndexOpen(true)}
+            onContinueReading={resumeTarget ? () => goToReader(resumeTarget.book, resumeTarget.chapter) : undefined}
+            continueTarget={resumeTarget}
           />
         )}
 
