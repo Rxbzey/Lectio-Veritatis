@@ -12,7 +12,7 @@ for (const book of bibliaLatinoamericana.books) {
     for (const verse of chapter.verses) {
       versePool.push({
         text: verse.text.trim(),
-        reference: `${book.name} ${chapter.number}:${verse.number}`,
+        reference: `${book.name} ${chapter.number},${verse.number}`,
       });
     }
   }

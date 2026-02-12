@@ -13,9 +13,10 @@ interface UseDialActionsParams {
   onGoHome: () => void;
   onOpenBooks: () => void;
   onShowChapters: () => void;
+  onOpenSearch?: () => void;
 }
 
-export function useDialActions({ isReader, onGoHome, onOpenBooks, onShowChapters }: UseDialActionsParams): DialAction[] {
+export function useDialActions({ isReader, onGoHome, onOpenBooks, onShowChapters, onOpenSearch }: UseDialActionsParams): DialAction[] {
   return useMemo(() => {
     const actions: DialAction[] = [
       {
@@ -44,6 +45,20 @@ export function useDialActions({ isReader, onGoHome, onOpenBooks, onShowChapters
       },
     ];
 
+    if (onOpenSearch) {
+      actions.push({
+        id: 'search',
+        label: 'Buscar',
+        icon: (
+          <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M16.5 16.5L21 21" />
+          </svg>
+        ),
+        onClick: onOpenSearch,
+      });
+    }
+
     if (isReader) {
       actions.push({
         id: 'chapters',
@@ -61,5 +76,5 @@ export function useDialActions({ isReader, onGoHome, onOpenBooks, onShowChapters
     }
 
     return actions;
-  }, [isReader, onGoHome, onOpenBooks, onShowChapters]);
+  }, [isReader, onGoHome, onOpenBooks, onShowChapters, onOpenSearch]);
 }

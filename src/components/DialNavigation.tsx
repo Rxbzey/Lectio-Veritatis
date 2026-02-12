@@ -11,9 +11,10 @@ interface DialNavigationProps {
   onGoHome: () => void;
   onOpenBooks: () => void;
   onOpenChapters: (abbrev: string) => void;
+  onOpenSearch?: () => void;
 }
 
-const RADIUS = 72;
+const RADIUS = 96;
 const START_ANGLE = -90;
 
 function getPosition(index: number, count: number) {
@@ -32,6 +33,7 @@ export function DialNavigation({
   onGoHome,
   onOpenBooks,
   onOpenChapters,
+  onOpenSearch,
 }: DialNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
   const fabRef = useRef<HTMLButtonElement>(null);
@@ -46,6 +48,7 @@ export function DialNavigation({
     onGoHome,
     onOpenBooks,
     onShowChapters: handleShowChapters,
+    onOpenSearch,
   });
 
   const toggle = useCallback(() => {

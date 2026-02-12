@@ -8,6 +8,12 @@ import { ChapterTransition } from './ChapterTransition';
 
 gsap.registerPlugin(ScrollTrigger);
 
+interface HighlightFocusState {
+  verse: number;
+  query: string;
+  token: number;
+}
+
 interface ScriptureReaderProps {
   bookAbbrev: string;
   chapter: number;
@@ -18,6 +24,7 @@ interface ScriptureReaderProps {
   onChapterCompleted?: (book: string, chapter: number, lastVerse?: number) => void;
   initialScrollPct?: number;
   initialLastVerse?: number;
+  highlightFocus?: HighlightFocusState | null;
 }
 
 export function ScriptureReader({
@@ -30,6 +37,7 @@ export function ScriptureReader({
   onChapterCompleted,
   initialScrollPct = 0,
   initialLastVerse = 0,
+  highlightFocus = null,
 }: ScriptureReaderProps) {
   const [chapterData, setChapterData] = useState<ChapterResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -208,6 +216,20 @@ export function ScriptureReader({
     }
   }, [bookAbbrev, chapter, chapterData]);
 
+  useEffect(() => {
+    if (!highlightFocus) return;
+    if (!containerRef.current) return;
+    const verseEl = containerRef.current.querySelector(`[data-verse-number="${highlightFocus.verse}"]`);
+    if (verseEl instanceof HTMLElement) {
+      verseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      gsap.fromTo(
+        verseEl,
+        { scale: 0.98 },
+        { scale: 1, duration: 0.6, ease: 'power2.out', overwrite: true }
+      );
+    }
+  }, [highlightFocus]);
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -305,17 +327,22 @@ export function ScriptureReader({
 
         {/* Verses */}
         <div className="relative z-10 mx-auto">
-          {chapterData.verses.map((verse, index) => (
-            <Verse
-              key={`${bookAbbrev}-${chapter}-${verse.number}`}
-              number={verse.number}
-              text={verse.text}
-              index={index}
-              bookName={chapterData.book.name}
-              chapter={chapterData.chapter.number}
-              isOldTestament={chapterData.book.group === 'Antiguo Testamento'}
-            />
-          ))}
+          {chapterData.verses.map((verse, index) => {
+            const isHighlighted = highlightFocus?.verse === verse.number;
+            return (
+              <Verse
+                key={`${bookAbbrev}-${chapter}-${verse.number}-${highlightFocus?.token ?? 'default'}`}
+                number={verse.number}
+                text={verse.text}
+                index={index}
+                bookName={chapterData.book.name}
+                chapter={chapterData.chapter.number}
+                isOldTestament={chapterData.book.group === 'Antiguo Testamento'}
+                isHighlighted={isHighlighted}
+                highlightQuery={isHighlighted ? highlightFocus?.query : undefined}
+              />
+            );
+          })}
         </div>
 
         {/* End of chapter */}
@@ -328,10 +355,6 @@ export function ScriptureReader({
             <p className="font-serif text-2xl md:text-[2.5rem] text-cream/50 italic tracking-[0.08em]">
               {chapterData.book.name}
             </p>
-            <p className="font-sans text-[10px] tracking-[0.45em] uppercase text-gold/60">
-              continua la lectura
-            </p>
-
             <div className="flex flex-col sm:flex-row items-center justify-center gap-8 pt-6">
               {/* Finalizar — go home */}
               <button

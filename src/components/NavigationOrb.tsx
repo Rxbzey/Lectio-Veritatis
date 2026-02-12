@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
-import type { Book } from '../lib/api';
+import type { Book, SearchResult } from '../lib/api';
 import { getBooks } from '../lib/api';
+import { useNavigationOrbSearch } from '../hooks/useNavigationOrbSearch';
+import { NavigationOrbSearchPanel } from './NavigationOrbSearchPanel';
+import { BookIndexGrid } from './BookIndexGrid';
+import { ChapterGrid } from './ChapterGrid';
 import type { ChapterStatus, BookStatus } from '../hooks/useReadingProgress';
+import { toRoman } from '../utils/toRoman';
 
 interface NavigationOrbProps {
   isOpen: boolean;
@@ -13,20 +18,8 @@ interface NavigationOrbProps {
   initialBook?: string | null;
   getChapterStatus?: (book: string, chapter: number) => ChapterStatus;
   getBookStatus?: (book: string, totalChapters: number) => BookStatus;
-}
-
-// Roman numeral converter
-function toRoman(num: number): string {
-  const vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
-  const syms = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
-  let result = '';
-  for (let i = 0; i < vals.length; i++) {
-    while (num >= vals[i]) {
-      result += syms[i];
-      num -= vals[i];
-    }
-  }
-  return result;
+  initialMode?: 'index' | 'search';
+  onSearchNavigate?: (abbrev: string, chapter: number, verse: number, query: string) => void;
 }
 
 export function NavigationOrb({
@@ -38,6 +31,8 @@ export function NavigationOrb({
   initialBook = null,
   getChapterStatus,
   getBookStatus,
+  initialMode = 'index',
+  onSearchNavigate,
 }: NavigationOrbProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -46,14 +41,88 @@ export function NavigationOrb({
   const [hoveredBook, setHoveredBook] = useState<string | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number>(-1);
   const [manualSelectedBook, setManualSelectedBook] = useState<string | null>(null);
+  const [mode, setMode] = useState<'index' | 'search'>(initialMode);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const {
+    query,
+    debouncedQuery,
+    searchResults,
+    searchStatus,
+    searchError,
+    hasSearched,
+    handleSearchInput,
+    clearSearchState,
+    showHelper,
+    searchStatusLabel,
+    renderHighlightedText,
+  } = useNavigationOrbSearch({ mode });
 
   useEffect(() => {
     getBooks().then(setBooks).catch(console.error);
   }, []);
 
-  const selectedBook = manualSelectedBook ?? (isOpen ? initialBook : null);
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
+
+  useEffect(() => {
+    if (mode !== 'search') return;
+    const timer = setTimeout(() => searchInputRef.current?.focus(), 200);
+    return () => clearTimeout(timer);
+  }, [mode]);
+
+  const selectedBookBase = manualSelectedBook ?? (isOpen ? initialBook : null);
+  const selectedBook = mode === 'search' ? null : selectedBookBase;
   const selectedBookData = books.find((b) => b.abbrev.pt === selectedBook);
   const selectedBookChapters = selectedBookData?.chapters ?? 0;
+  const handleClose = useCallback(() => {
+    const finishClose = () => {
+      onClose();
+      clearSearchState();
+      setManualSelectedBook(null);
+      setHoveredBook(null);
+      setHoveredIndex(-1);
+      setMode('index');
+    };
+
+    if (panelRef.current) {
+      gsap.to(panelRef.current, {
+        opacity: 0,
+        duration: 0.4,
+        ease: 'power2.in',
+        onComplete: finishClose,
+      });
+    } else {
+      finishClose();
+    }
+  }, [onClose, clearSearchState]);
+
+  const handleSearchResultSelect = useCallback((result: SearchResult) => {
+    const activeQuery = debouncedQuery || query.trim();
+    if (onSearchNavigate) {
+      onSearchNavigate(result.book.abbrev.pt, result.chapter, result.number, activeQuery);
+    } else {
+      onNavigate(result.book.abbrev.pt, result.chapter);
+    }
+    handleClose();
+  }, [debouncedQuery, onNavigate, onSearchNavigate, query, handleClose]);
+
+  const renderSearchMode = () => (
+    <NavigationOrbSearchPanel
+      searchInputRef={searchInputRef}
+      query={query}
+      onQueryChange={handleSearchInput}
+      searchStatusLabel={searchStatusLabel}
+      showHelper={showHelper}
+      searchStatus={searchStatus}
+      searchError={searchError}
+      hasSearched={hasSearched}
+      debouncedQuery={debouncedQuery}
+      searchResults={searchResults}
+      onSelectResult={handleSearchResultSelect}
+      renderHighlightedText={renderHighlightedText}
+    />
+  );
 
   // Panel enter animation — stagger cascade
   useEffect(() => {
@@ -148,114 +217,10 @@ export function NavigationOrb({
     }
   };
 
-  const handleClose = () => {
-    if (panelRef.current) {
-      gsap.to(panelRef.current, {
-        opacity: 0,
-        duration: 0.4,
-        ease: 'power2.in',
-        onComplete: () => {
-          onClose();
-          setManualSelectedBook(null);
-          setHoveredBook(null);
-          setHoveredIndex(-1);
-        },
-      });
-    } else {
-      onClose();
-      setManualSelectedBook(null);
-    }
-  };
+
 
   const otBooks = books.filter((b) => b.testament === 'VT');
   const ntBooks = books.filter((b) => b.testament === 'NT');
-
-  const renderEditorialGrid = (bookList: Book[], label: string, startIndex: number) => (
-    <div className="mb-4">
-      {/* Section title — small caps with heavy tracking */}
-      <div className="section-title flex items-center gap-6 mb-10 md:mb-14">
-        <h3
-          className="font-sans text-[10px] md:text-[11px] tracking-[0.3em] uppercase text-gold/40"
-          style={{ fontVariant: 'small-caps' }}
-        >
-          {label}
-        </h3>
-        <div className="flex-1 h-px" style={{ background: 'rgba(201,168,76,0.06)' }} />
-      </div>
-
-      {/* Editorial asymmetric grid — 3 cols on md, 4 on lg */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-12 md:gap-x-16 lg:gap-x-20 gap-y-0">
-        {bookList.map((book, i) => {
-          const globalIdx = startIndex + i;
-          const isActive = book.abbrev.pt === currentBook;
-          const isHovered = hoveredBook === book.abbrev.pt;
-          const bookStatus = getBookStatus?.(book.abbrev.pt, book.chapters) ?? 'unread';
-
-          return (
-            <button
-              key={book.abbrev.pt}
-              className="book-item relative text-left cursor-pointer py-3 md:py-4 overflow-hidden"
-              onClick={() => handleBookClick(book)}
-              onMouseEnter={(e) => handleBookEnter(e, book, globalIdx)}
-              onMouseLeave={handleBookLeave}
-              data-cursor-hover
-            >
-              {/* Roman numeral background — appears on hover */}
-              <span
-                className="absolute right-0 top-1/2 -translate-y-1/2 font-serif text-[3.5rem] md:text-[4.5rem] pointer-events-none select-none transition-opacity duration-700"
-                style={{
-                  opacity: isHovered ? 0.05 : 0,
-                  color: 'rgba(201,168,76,1)',
-                }}
-              >
-                {toRoman(globalIdx + 1)}
-              </span>
-
-              {/* Book name */}
-              <span
-                className={`book-name relative z-10 font-serif text-[15px] md:text-[17px] lg:text-lg transition-colors duration-700 ${
-                  isActive
-                    ? 'text-gold italic'
-                    : isHovered
-                    ? 'text-gold italic'
-                    : bookStatus === 'completed'
-                    ? 'text-emerald-400/90'
-                    : bookStatus === 'in-progress'
-                    ? 'text-amber-400/80'
-                    : 'text-cream/85'
-                }`}
-                style={{ opacity: isActive || isHovered ? 1 : bookStatus !== 'unread' ? 0.85 : 0.45 }}
-              >
-                {book.name}
-              </span>
-
-              {/* Reading status indicator */}
-              {bookStatus === 'completed' && (
-                <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[8px] text-emerald-400/50 z-10 pointer-events-none">✓</span>
-              )}
-              {bookStatus === 'in-progress' && (
-                <span className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-amber-400/40 z-10 pointer-events-none" />
-              )}
-
-              {/* Active indicator — subtle gold dot */}
-              {isActive && (
-                <span className="absolute left-[-12px] top-1/2 -translate-y-1/2 w-[3px] h-[3px] rounded-full bg-gold/60" />
-              )}
-
-              {/* Bottom line — subtle separator */}
-              <span
-                className="absolute bottom-0 left-0 w-full h-px transition-opacity duration-500"
-                style={{
-                  background: 'rgba(201,168,76,0.04)',
-                  opacity: isHovered ? 0 : 1,
-                }}
-              />
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
 
   if (!isOpen) return null;
 
@@ -270,12 +235,18 @@ export function NavigationOrb({
         style={{ padding: '3rem 10vw 0' }}
       >
         <div>
-          <p className="font-sans text-[9px] md:text-[10px] tracking-[0.5em] uppercase text-gold/30 mb-3">
-            {selectedBook ? 'Selecciona capítulo' : 'Índice Tipográfico'}
+          <p className="font-sans text-[9px] md:text-[10px] tracking-[0.5em] uppercase text-gold/50 mb-3">
+            {selectedBook
+              ? 'Selecciona capítulo'
+              : mode === 'search'
+              ? 'Motor de búsqueda'
+              : 'Índice Tipográfico'}
           </p>
           <h2 className="font-serif text-4xl md:text-6xl lg:text-7xl text-cream/90 tracking-tight leading-none">
             {selectedBook
               ? books.find((b) => b.abbrev.pt === selectedBook)?.name || ''
+              : mode === 'search'
+              ? 'Buscar en las Escrituras'
               : 'Escrituras'}
           </h2>
         </div>
@@ -296,7 +267,7 @@ export function NavigationOrb({
       </div>
 
       {/* Hovered roman numeral — large background watermark */}
-      {hoveredIndex >= 0 && !selectedBook && (
+      {mode === 'index' && hoveredIndex >= 0 && !selectedBook && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
           <span
             className="font-serif leading-none"
@@ -317,9 +288,21 @@ export function NavigationOrb({
         style={{ padding: '3rem 10vw 6rem' }}
         data-lenis-prevent
       >
-        {!selectedBook ? (
+        {mode === 'search' ? (
+          renderSearchMode()
+        ) : !selectedBook ? (
           <>
-            {renderEditorialGrid(otBooks, 'Antiguo Testamento', 0)}
+            <BookIndexGrid
+              bookList={otBooks}
+              label="Antiguo Testamento"
+              startIndex={0}
+              currentBook={currentBook}
+              hoveredBook={hoveredBook}
+              getBookStatus={getBookStatus}
+              onBookClick={handleBookClick}
+              onBookEnter={handleBookEnter}
+              onBookLeave={handleBookLeave}
+            />
 
             {/* Testament divider — ultra thin */}
             <div className="testament-divider flex items-center gap-8 my-12 md:my-16 origin-left" style={{ transformOrigin: 'left center' }}>
@@ -330,7 +313,17 @@ export function NavigationOrb({
               <div className="flex-1 h-px" style={{ background: 'rgba(201,168,76,0.08)' }} />
             </div>
 
-            {renderEditorialGrid(ntBooks, 'Nuevo Testamento', otBooks.length)}
+            <BookIndexGrid
+              bookList={ntBooks}
+              label="Nuevo Testamento"
+              startIndex={otBooks.length}
+              currentBook={currentBook}
+              hoveredBook={hoveredBook}
+              getBookStatus={getBookStatus}
+              onBookClick={handleBookClick}
+              onBookEnter={handleBookEnter}
+              onBookLeave={handleBookLeave}
+            />
           </>
         ) : (
           <div>
@@ -343,38 +336,14 @@ export function NavigationOrb({
               Volver al índice
             </button>
 
-            {/* Chapter grid */}
-            <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1">
-              {Array.from({ length: selectedBookChapters }, (_, i) => i + 1).map((ch) => {
-                const chStatus = selectedBook ? (getChapterStatus?.(selectedBook, ch) ?? 'unread') : 'unread';
-                const isCurrent = selectedBook === currentBook && ch === currentChapter;
-
-                return (
-                  <button
-                    key={ch}
-                    onClick={() => handleChapterSelect(ch)}
-                    className={`book-item aspect-square flex items-center justify-center font-sans text-xs md:text-sm cursor-pointer transition-all duration-500 relative ${
-                      isCurrent
-                        ? 'text-gold bg-gold/8'
-                        : chStatus === 'completed'
-                        ? 'text-emerald-400/80 bg-emerald-400/5 hover:bg-emerald-400/10'
-                        : chStatus === 'in-progress'
-                        ? 'text-amber-400/80 bg-amber-400/5 hover:bg-amber-400/10'
-                        : 'text-cream/60 hover:text-cream/80 hover:bg-cream/3'
-                    }`}
-                    data-cursor-hover
-                  >
-                    {ch}
-                    {chStatus === 'completed' && !isCurrent && (
-                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-emerald-400/50" />
-                    )}
-                    {chStatus === 'in-progress' && !isCurrent && (
-                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-amber-400/50" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            <ChapterGrid
+              totalChapters={selectedBookChapters}
+              selectedBook={selectedBook}
+              currentBook={currentBook}
+              currentChapter={currentChapter}
+              getChapterStatus={getChapterStatus}
+              onChapterSelect={handleChapterSelect}
+            />
           </div>
         )}
       </div>

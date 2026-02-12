@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useSmoothScroll } from './hooks/useSmoothScroll';
 import { useReadingProgressStore, selectResumeTarget } from './hooks/useReadingProgress';
 import { Hero } from './components/Hero';
@@ -18,6 +18,8 @@ function App() {
   const [currentChapter, setCurrentChapter] = useState(1);
   const [indexOpen, setIndexOpen] = useState(false);
   const [chapterPickerBook, setChapterPickerBook] = useState<string | null>(null);
+  const [orbMode, setOrbMode] = useState<'index' | 'search'>('index');
+  const [searchTarget, setSearchTarget] = useState<{ book: string; chapter: number; verse: number; query: string; token: number } | null>(null);
   const [chapterMeta, setChapterMeta] = useState<{ bookName: string; totalVerses: number }>({
     bookName: '',
     totalVerses: 0,
@@ -59,6 +61,30 @@ function App() {
     });
   }, []);
 
+  const handleSearchNavigate = useCallback((abbrev: string, chapter: number, verse: number, query: string) => {
+    setSearchTarget({ book: abbrev, chapter, verse, query, token: Date.now() });
+    goToReader(abbrev, chapter);
+  }, [goToReader]);
+
+  const activeHighlight = useMemo(() => {
+    if (!searchTarget) return null;
+    if (searchTarget.book !== currentBook || searchTarget.chapter !== currentChapter) return null;
+    return { verse: searchTarget.verse, query: searchTarget.query, token: searchTarget.token };
+  }, [searchTarget, currentBook, currentChapter]);
+
+  const openBooks = useCallback(() => {
+    setOrbMode('index');
+    setChapterPickerBook(null);
+    setIndexOpen(true);
+  }, []);
+
+  const openSearch = useCallback(() => {
+    setOrbMode('search');
+    setChapterPickerBook(null);
+    setIndexOpen(true);
+  }, []);
+
+
   return (
     <div lang="es" role="application" aria-label="The Living Scripture — Biblia Latinoamericana Digital">
       <MercuryCursor />
@@ -75,7 +101,7 @@ function App() {
         {view === 'home' && (
           <Hero
             onGetStarted={() => goToReader('genesis', 1)}
-            onExploreBooks={() => setIndexOpen(true)}
+            onExploreBooks={openBooks}
             onContinueReading={resumeTarget ? () => goToReader(resumeTarget.book, resumeTarget.chapter) : undefined}
             continueTarget={resumeTarget}
           />
@@ -92,12 +118,14 @@ function App() {
             onChapterCompleted={markChapterCompleted}
             initialScrollPct={getChapterScrollPct(currentBook, currentChapter)}
             initialLastVerse={getChapterLastVerse(currentBook, currentChapter)}
+            highlightFocus={activeHighlight}
           />
         )}
       </main>
 
       <nav role="navigation" aria-label="Navegación de libros">
         <NavigationOrb
+          key={orbMode === 'search' ? 'orb-search' : 'orb-index'}
           isOpen={indexOpen}
           onClose={() => {
             setIndexOpen(false);
@@ -109,23 +137,21 @@ function App() {
           initialBook={chapterPickerBook}
           getChapterStatus={getChapterStatus}
           getBookStatus={getBookStatus}
+          initialMode={orbMode}
+          onSearchNavigate={handleSearchNavigate}
         />
       </nav>
-
-     
 
       <DialNavigation
         view={view}
         currentBook={currentBook}
         onGoHome={goHome}
-        onOpenBooks={() => {
-          setChapterPickerBook(null);
-          setIndexOpen(true);
-        }}
+        onOpenBooks={openBooks}
         onOpenChapters={(abbrev) => {
           setChapterPickerBook(abbrev);
           setIndexOpen(true);
         }}
+        onOpenSearch={openSearch}
       />
     </div>
   );

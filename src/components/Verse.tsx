@@ -11,6 +11,12 @@ interface VerseProps {
   bookName: string;
   chapter: number;
   isOldTestament?: boolean;
+  isHighlighted?: boolean;
+  highlightQuery?: string;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export function Verse({ 
@@ -19,7 +25,9 @@ export function Verse({
   index, 
   bookName, 
   chapter,
-  isOldTestament = false 
+  isOldTestament = false,
+  isHighlighted = false,
+  highlightQuery,
 }: VerseProps) {
   const verseRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -108,6 +116,9 @@ export function Verse({
 
   const normalizedText = text.replace(/\s+/g, ' ').trim();
   const words = normalizedText.split(' ');
+  const activeQuery = isHighlighted && highlightQuery ? highlightQuery.trim() : '';
+  const highlightRegex = activeQuery ? new RegExp(`(${escapeRegExp(activeQuery)})`, 'gi') : null;
+  const highlightedSegments = highlightRegex ? normalizedText.split(highlightRegex) : null;
 
   return (
     <>
@@ -127,9 +138,11 @@ export function Verse({
       <div
         ref={verseRef}
         data-verse-number={number}
-        className="min-h-[45vh] md:min-h-[55vh] flex items-center justify-center py-12 md:py-20 will-change-transform"
+        className={`min-h-[45vh] md:min-h-[55vh] flex items-center justify-center py-12 md:py-20 will-change-transform transition-colors duration-600 ${
+          isHighlighted ? 'bg-gold/5' : ''
+        }`}
       >
-        <div className="w-full max-w-3xl mx-auto px-8 md:px-16 lg:px-20">
+        <div className={`w-full max-w-3xl mx-auto px-8 md:px-16 lg:px-20 ${isHighlighted ? 'rounded-3xl border border-gold/15 bg-cream/2 shadow-[0_0_50px_rgba(201,168,76,0.12)]' : ''}`}>
           {/* Header with book info */}
           <div 
             ref={headerRef}
@@ -159,6 +172,11 @@ export function Verse({
               >
                Versiculo {number}
               </span>
+              {isHighlighted && (
+                <span className="ml-4 inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.35em] text-gold bg-gold/10 border border-gold/20">
+                  Coincidencia
+                </span>
+              )}
             </div>
 
             {/* Decorative divider */}
@@ -174,20 +192,34 @@ export function Verse({
           {/* Verse content */}
           <div className="space-y-4">
             {/* Verse text */}
-            <p className="font-serif text-lg sm:text-xl md:text-2xl lg:text-[1.75rem] leading-[1.75] sm:leading-[1.8] md:leading-[1.85] tracking-[0.005em] text-cream-bright/85">
-              {words.map((word, i) => (
-                <span
-                  key={`${index}-${i}`}
-                  ref={(el) => { if (el) wordsRef.current[i] = el; }}
-                  className="verse-word"
-                  style={{ 
-                    display: 'inline-block', 
-                    marginRight: i < words.length - 1 ? '0.32em' : 0 
-                  }}
-                >
-                  {word}
-                </span>
-              ))}
+            <p
+              className={`font-serif text-lg sm:text-xl md:text-2xl lg:text-[1.75rem] leading-[1.75] sm:leading-[1.8] md:leading-[1.85] tracking-[0.005em] ${
+                isHighlighted ? 'text-cream-bright' : 'text-cream-bright/85'
+              }`}
+            >
+              {highlightedSegments
+                ? highlightedSegments.map((segment, i) => (
+                    <span
+                      key={`${index}-highlight-${i}`}
+                      className={`verse-word ${i % 2 === 1 ? 'bg-gold/25 text-void px-1 rounded-sm text-cream-bright' : ''}`.trim()}
+                      style={{ display: 'inline' }}
+                    >
+                      {segment}
+                    </span>
+                  ))
+                : words.map((word, i) => (
+                    <span
+                      key={`${index}-${i}`}
+                      ref={(el) => { if (el) wordsRef.current[i] = el; }}
+                      className="verse-word"
+                      style={{ 
+                        display: 'inline-block', 
+                        marginRight: i < words.length - 1 ? '0.32em' : 0 
+                      }}
+                    >
+                      {word}
+                    </span>
+                  ))}
             </p>
           </div>
 
