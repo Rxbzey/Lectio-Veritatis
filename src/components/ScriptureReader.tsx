@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { getChapter, getNextChapter } from '../lib/api';
@@ -25,6 +25,51 @@ interface ScriptureReaderProps {
   initialScrollPct?: number;
   initialLastVerse?: number;
   highlightFocus?: HighlightFocusState | null;
+}
+
+const MAX_WORDS_PER_PARAGRAPH = 100;
+
+function countWords(text: string): number {
+  const normalized = text.trim();
+  if (!normalized) return 0;
+  return normalized.split(/\s+/).length;
+}
+
+function groupVersesByWordLimit(
+  verses: { number: number; text: string }[],
+  maxWords: number
+): { number: number; text: string }[][] {
+  if (verses.length === 0) return [];
+
+  const groups: { number: number; text: string }[][] = [];
+  let currentGroup: { number: number; text: string }[] = [];
+  let currentWords = 0;
+
+  verses.forEach((verse) => {
+    const verseWords = countWords(verse.text);
+
+    if (currentGroup.length === 0) {
+      currentGroup.push(verse);
+      currentWords = verseWords;
+      return;
+    }
+
+    if (currentWords + verseWords <= maxWords) {
+      currentGroup.push(verse);
+      currentWords += verseWords;
+      return;
+    }
+
+    groups.push(currentGroup);
+    currentGroup = [verse];
+    currentWords = verseWords;
+  });
+
+  if (currentGroup.length > 0) {
+    groups.push(currentGroup);
+  }
+
+  return groups;
 }
 
 export function ScriptureReader({
@@ -230,6 +275,11 @@ export function ScriptureReader({
     }
   }, [highlightFocus]);
 
+  const verseParagraphs = useMemo(
+    () => (chapterData ? groupVersesByWordLimit(chapterData.verses, MAX_WORDS_PER_PARAGRAPH) : []),
+    [chapterData]
+  );
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -327,19 +377,22 @@ export function ScriptureReader({
 
         {/* Verses */}
         <div className="relative z-10 mx-auto">
-          {chapterData.verses.map((verse, index) => {
-            const isHighlighted = highlightFocus?.verse === verse.number;
+          {verseParagraphs.map((verseGroup, index) => {
+            const groupHasHighlight =
+              highlightFocus != null && verseGroup.some((verse) => verse.number === highlightFocus.verse);
+            const firstVerse = verseGroup[0]?.number ?? index;
+            const lastVerse = verseGroup[verseGroup.length - 1]?.number ?? index;
+
             return (
               <Verse
-                key={`${bookAbbrev}-${chapter}-${verse.number}-${highlightFocus?.token ?? 'default'}`}
-                number={verse.number}
-                text={verse.text}
+                key={`${bookAbbrev}-${chapter}-${firstVerse}-${lastVerse}-${highlightFocus?.token ?? 'default'}`}
+                verses={verseGroup}
                 index={index}
                 bookName={chapterData.book.name}
                 chapter={chapterData.chapter.number}
                 isOldTestament={chapterData.book.group === 'Antiguo Testamento'}
-                isHighlighted={isHighlighted}
-                highlightQuery={isHighlighted ? highlightFocus?.query : undefined}
+                highlightedVerse={groupHasHighlight ? highlightFocus?.verse : undefined}
+                highlightQuery={groupHasHighlight ? highlightFocus?.query : undefined}
               />
             );
           })}

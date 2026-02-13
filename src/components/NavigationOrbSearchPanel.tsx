@@ -58,9 +58,7 @@ export function NavigationOrbSearchPanel({
             <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-cream/45">Modo sin conexión</p>
           )}
         </div>
-        {showHelper && (
-          <p className="font-serif text-sm text-cream/50">Escribe al menos 3 letras para iniciar la búsqueda.</p>
-        )}
+       
       </div>
 
       

@@ -5,13 +5,12 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 gsap.registerPlugin(ScrollTrigger);
 
 interface VerseProps {
-  number: number;
-  text: string;
+  verses: { number: number; text: string }[];
   index: number;
   bookName: string;
   chapter: number;
   isOldTestament?: boolean;
-  isHighlighted?: boolean;
+  highlightedVerse?: number;
   highlightQuery?: string;
 }
 
@@ -20,30 +19,46 @@ function escapeRegExp(value: string) {
 }
 
 export function Verse({ 
-  number, 
-  text, 
+  verses,
   index, 
   bookName, 
   chapter,
   isOldTestament = false,
-  isHighlighted = false,
+  highlightedVerse,
   highlightQuery,
 }: VerseProps) {
   const verseRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const numberRef = useRef<HTMLSpanElement>(null);
-  const wordsRef = useRef<HTMLSpanElement[]>([]);
+
+  const rangeStart = verses[0]?.number ?? 0;
+  const rangeEnd = verses[verses.length - 1]?.number ?? rangeStart;
+  const isHighlighted = highlightedVerse != null && verses.some((verse) => verse.number === highlightedVerse);
+  const activeQuery = isHighlighted && highlightQuery ? highlightQuery.trim() : '';
+  const highlightRegex = activeQuery ? new RegExp(`(${escapeRegExp(activeQuery)})`, 'gi') : null;
+
+  const renderVerseText = (verseNumber: number, verseText: string) => {
+    if (!highlightRegex || highlightedVerse !== verseNumber) {
+      return verseText;
+    }
+
+    return verseText.split(highlightRegex).map((segment, i) => (
+      <span
+        key={`${verseNumber}-segment-${i}`}
+        className={i % 2 === 1 ? 'bg-gold/25 text-cream-bright px-1 rounded-sm' : ''}
+      >
+        {segment}
+      </span>
+    ));
+  };
 
   useEffect(() => {
     const el = verseRef.current;
     const header = headerRef.current;
     if (!el) return;
 
-    const words = el.querySelectorAll('.verse-word');
-
     // Initial states
     gsap.set(el, { opacity: 0, y: 60 });
-    gsap.set(words, { opacity: 0, y: 10 });
     if (header) {
       gsap.set(header, { opacity: 0, y: -15 });
     }
@@ -78,14 +93,7 @@ export function Verse({
       scale: 1,
       duration: 0.4,
       ease: 'back.out(1.5)',
-    }, '<0.2')
-    .to(words, {
-      opacity: 1,
-      y: 0,
-      duration: 0.5,
-      stagger: 0.012,
-      ease: 'power2.out',
-    }, '<0.15');
+    }, '<0.2');
 
     // Exit fade animation
     const tlFade = gsap.timeline({
@@ -114,30 +122,18 @@ export function Verse({
     };
   }, [index]);
 
-  const normalizedText = text.replace(/\s+/g, ' ').trim();
-  const words = normalizedText.split(' ');
-  const activeQuery = isHighlighted && highlightQuery ? highlightQuery.trim() : '';
-  const highlightRegex = activeQuery ? new RegExp(`(${escapeRegExp(activeQuery)})`, 'gi') : null;
-  const highlightedSegments = highlightRegex ? normalizedText.split(highlightRegex) : null;
-
   return (
     <>
       <style>{`
-        .verse-word {
+        .verse-paragraph {
           word-break: normal;
           overflow-wrap: break-word;
-        }
-
-        /* Mejora el espaciado entre palabras */
-        .verse-text-centered {
-          text-align: center;
-          word-spacing: 0.05em;
         }
       `}</style>
 
       <div
         ref={verseRef}
-        data-verse-number={number}
+        data-verse-range={`${rangeStart}-${rangeEnd}`}
         className={`min-h-[45vh] md:min-h-[55vh] flex items-center justify-center py-12 md:py-20 will-change-transform transition-colors duration-600 ${
           isHighlighted ? 'bg-gold/5' : ''
         }`}
@@ -170,7 +166,7 @@ export function Verse({
                 ref={numberRef}
                 className="font-serif text-lg md:text-2lg text-gold/40 tabular-nums select-none"
               >
-               Versiculo {number}
+                Versículos {rangeStart}-{rangeEnd}
               </span>
               
             </div>
@@ -191,31 +187,21 @@ export function Verse({
             <p
               className={`font-serif text-lg sm:text-xl md:text-2xl lg:text-[1.75rem] leading-[1.75] sm:leading-[1.8] md:leading-[1.85] tracking-[0.005em] ${
                 isHighlighted ? 'text-cream-bright' : 'text-cream-bright/85'
-              }`}
+              } verse-paragraph`}
             >
-              {highlightedSegments
-                ? highlightedSegments.map((segment, i) => (
-                    <span
-                      key={`${index}-highlight-${i}`}
-                      className={`verse-word ${i % 2 === 1 ? 'bg-gold/25 text-cream-bright px-1 rounded-sm' : ''}`.trim()}
-                      style={{ display: 'inline' }}
-                    >
-                      {segment}
-                    </span>
-                  ))
-                : words.map((word, i) => (
-                    <span
-                      key={`${index}-${i}`}
-                      ref={(el) => { if (el) wordsRef.current[i] = el; }}
-                      className="verse-word"
-                      style={{ 
-                        display: 'inline-block', 
-                        marginRight: i < words.length - 1 ? '0.32em' : 0 
-                      }}
-                    >
-                      {word}
-                    </span>
-                  ))}
+              {verses.map((verse, verseIndex) => (
+                <span
+                  key={`${index}-verse-${verse.number}`}
+                  data-verse-number={verse.number}
+                  className="inline"
+                >
+                  <sup className="font-sans text-[11px] text-gold/65 tracking-[0.05em] mr-1 align-super">
+                    {verse.number}
+                  </sup>
+                  {renderVerseText(verse.number, verse.text)}
+                  {verseIndex < verses.length - 1 && ' '}
+                </span>
+              ))}
             </p>
           </div>
 
