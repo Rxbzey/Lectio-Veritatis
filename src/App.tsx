@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, useCallback, useMemo } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { useSmoothScroll } from './hooks/useSmoothScroll';
 import { useReadingProgressStore, selectResumeTarget } from './hooks/useReadingProgress';
 import { DynamicNavbar } from './components/DynamicNavbar';
@@ -94,6 +95,7 @@ function App() {
 
   return (
     <div lang="es" role="application" aria-label="The Living Scripture — Biblia Latinoamericana Digital">
+      <SpeedInsights />
       <Suspense fallback={null}>
         <MercuryCursor />
         <FilmGrain />
