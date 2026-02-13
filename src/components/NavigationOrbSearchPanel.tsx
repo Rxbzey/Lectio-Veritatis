@@ -6,6 +6,7 @@ interface NavigationOrbSearchPanelProps {
   searchInputRef: RefObject<HTMLInputElement | null>;
   query: string;
   onQueryChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  isOnline?: boolean;
   searchStatusLabel: string;
   showHelper: boolean;
   searchStatus: SearchStatus;
@@ -21,6 +22,9 @@ export function NavigationOrbSearchPanel({
   searchInputRef,
   query,
   onQueryChange,
+  isOnline = true,
+  searchStatusLabel,
+  showHelper,
   searchStatus,
   searchError,
   hasSearched,
@@ -43,18 +47,32 @@ export function NavigationOrbSearchPanel({
             value={query}
             onChange={onQueryChange}
             className="w-full bg-transparent border-b border-white/15 focus:border-gold/80 focus:shadow-[0_15px_45px_rgba(201,168,76,0.15)] focus:outline-none font-serif text-xl text-cream placeholder:text-cream/30 py-3 pr-4 transition-all duration-500"
-            placeholder="Ej. Misericordia, esperanza, pan de vida"
+            placeholder={isOnline ? 'Ej. Misericordia, esperanza, pan de vida' : 'Sin conexión: búsqueda local disponible'}
             aria-label="Buscar versículos"
             autoComplete="off"
           />
         </div>
-        
+        <div className="flex items-center justify-between gap-4">
+          <p className="font-sans text-[10px] tracking-[0.35em] uppercase text-gold/45">{searchStatusLabel}</p>
+          {!isOnline && (
+            <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-cream/45">Modo sin conexión</p>
+          )}
+        </div>
+        {showHelper && (
+          <p className="font-serif text-sm text-cream/50">Escribe al menos 3 letras para iniciar la búsqueda.</p>
+        )}
       </div>
 
       
 
       <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
         
+
+        {!isOnline && (
+          <div className="text-cream/55 font-serif text-base">
+            Estás sin conexión. Buscando sobre el contenido local descargado.
+          </div>
+        )}
 
         {searchStatus === 'loading' && (
           <div className="flex flex-col gap-3">

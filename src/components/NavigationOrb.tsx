@@ -20,6 +20,7 @@ interface NavigationOrbProps {
   getBookStatus?: (book: string, totalChapters: number) => BookStatus;
   initialMode?: 'index' | 'search';
   onSearchNavigate?: (abbrev: string, chapter: number, verse: number, query: string) => void;
+  isOnline?: boolean;
 }
 
 export function NavigationOrb({
@@ -33,6 +34,7 @@ export function NavigationOrb({
   getBookStatus,
   initialMode = 'index',
   onSearchNavigate,
+  isOnline = true,
 }: NavigationOrbProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -41,8 +43,8 @@ export function NavigationOrb({
   const [hoveredBook, setHoveredBook] = useState<string | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number>(-1);
   const [manualSelectedBook, setManualSelectedBook] = useState<string | null>(null);
-  const [mode, setMode] = useState<'index' | 'search'>(initialMode);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const mode = initialMode;
   const {
     query,
     debouncedQuery,
@@ -62,10 +64,6 @@ export function NavigationOrb({
   }, []);
 
   useEffect(() => {
-    setMode(initialMode);
-  }, [initialMode]);
-
-  useEffect(() => {
     if (mode !== 'search') return;
     const timer = setTimeout(() => searchInputRef.current?.focus(), 200);
     return () => clearTimeout(timer);
@@ -82,7 +80,6 @@ export function NavigationOrb({
       setManualSelectedBook(null);
       setHoveredBook(null);
       setHoveredIndex(-1);
-      setMode('index');
     };
 
     if (panelRef.current) {
@@ -112,6 +109,7 @@ export function NavigationOrb({
       searchInputRef={searchInputRef}
       query={query}
       onQueryChange={handleSearchInput}
+      isOnline={isOnline}
       searchStatusLabel={searchStatusLabel}
       showHelper={showHelper}
       searchStatus={searchStatus}
@@ -142,21 +140,25 @@ export function NavigationOrb({
 
     // Section titles
     const sectionTitles = panel.querySelectorAll('.section-title');
-    tl.fromTo(
-      sectionTitles,
-      { opacity: 0, x: -30 },
-      { opacity: 1, x: 0, duration: 0.7, stagger: 0.15, ease: 'power3.out' },
-      0.35
-    );
+    if (sectionTitles.length > 0) {
+      tl.fromTo(
+        sectionTitles,
+        { opacity: 0, x: -30 },
+        { opacity: 1, x: 0, duration: 0.7, stagger: 0.15, ease: 'power3.out' },
+        0.35
+      );
+    }
 
     // Book items — stagger cascade row by row
     const items = panel.querySelectorAll('.book-item');
-    tl.fromTo(
-      items,
-      { opacity: 0, y: 24 },
-      { opacity: 1, y: 0, duration: 0.6, stagger: 0.02, ease: 'power3.out' },
-      0.45
-    );
+    if (items.length > 0) {
+      tl.fromTo(
+        items,
+        { opacity: 0, y: 24 },
+        { opacity: 1, y: 0, duration: 0.6, stagger: 0.02, ease: 'power3.out' },
+        0.45
+      );
+    }
 
     // Divider
     const divider = panel.querySelector('.testament-divider');

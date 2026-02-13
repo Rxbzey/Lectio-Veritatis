@@ -142,7 +142,7 @@ export function Verse({
           isHighlighted ? 'bg-gold/5' : ''
         }`}
       >
-        <div className={`w-full max-w-3xl mx-auto px-8 md:px-16 lg:px-20 ${isHighlighted ? 'rounded-3xl border border-gold/15 bg-cream/2 shadow-[0_0_50px_rgba(201,168,76,0.12)]' : ''}`}>
+        <div className={`w-full max-w-3xl mx-auto px-8 md:px-16 lg:px-20 ${isHighlighted ? 'rounded-3xl bg-cream/2 shadow-[0_0_50px_rgba(201,168,76,0.12)]' : ''}`}>
           {/* Header with book info */}
           <div 
             ref={headerRef}
@@ -172,11 +172,7 @@ export function Verse({
               >
                Versiculo {number}
               </span>
-              {isHighlighted && (
-                <span className="ml-4 inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.35em] text-gold bg-gold/10 border border-gold/20">
-                  Coincidencia
-                </span>
-              )}
+              
             </div>
 
             {/* Decorative divider */}
@@ -201,7 +197,7 @@ export function Verse({
                 ? highlightedSegments.map((segment, i) => (
                     <span
                       key={`${index}-highlight-${i}`}
-                      className={`verse-word ${i % 2 === 1 ? 'bg-gold/25 text-void px-1 rounded-sm text-cream-bright' : ''}`.trim()}
+                      className={`verse-word ${i % 2 === 1 ? 'bg-gold/25 text-cream-bright px-1 rounded-sm' : ''}`.trim()}
                       style={{ display: 'inline' }}
                     >
                       {segment}

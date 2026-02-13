@@ -1,16 +1,19 @@
-import { useState, useCallback, useMemo } from 'react';
+import { lazy, Suspense, useState, useCallback, useMemo } from 'react';
 import { useSmoothScroll } from './hooks/useSmoothScroll';
 import { useReadingProgressStore, selectResumeTarget } from './hooks/useReadingProgress';
-import { Hero } from './components/Hero';
-import { ScriptureReader } from './components/ScriptureReader';
-import { NavigationOrb } from './components/NavigationOrb';
 import { DynamicNavbar } from './components/DynamicNavbar';
-import { FilmGrain } from './components/FilmGrain';
-import { MercuryCursor } from './components/MercuryCursor';
-import { DialNavigation } from './components/DialNavigation';
 import type { ChapterResponse } from './lib/api';
+import { useOfflineSupport } from './hooks/useOfflineSupport';
+import { useReadingProgressSyncActions } from './hooks/useReadingProgressSyncActions';
 
 type AppView = 'home' | 'reader';
+
+const Hero = lazy(() => import('./components/Hero').then((module) => ({ default: module.Hero })));
+const ScriptureReader = lazy(() => import('./components/ScriptureReader').then((module) => ({ default: module.ScriptureReader })));
+const NavigationOrb = lazy(() => import('./components/NavigationOrb').then((module) => ({ default: module.NavigationOrb })));
+const FilmGrain = lazy(() => import('./components/FilmGrain').then((module) => ({ default: module.FilmGrain })));
+const MercuryCursor = lazy(() => import('./components/MercuryCursor').then((module) => ({ default: module.MercuryCursor })));
+const DialNavigation = lazy(() => import('./components/DialNavigation').then((module) => ({ default: module.DialNavigation })));
 
 function App() {
   const [view, setView] = useState<AppView>('home');
@@ -25,14 +28,15 @@ function App() {
     totalVerses: 0,
   });
   useSmoothScroll();
+  const { isOnline } = useOfflineSupport();
   const updateChapterScroll = useReadingProgressStore((state) => state.updateChapterScroll);
-  const markChapterCompleted = useReadingProgressStore((state) => state.markChapterCompleted);
   const getChapterScrollPct = useReadingProgressStore((state) => state.getChapterScrollPct);
   const getChapterLastVerse = useReadingProgressStore((state) => state.getChapterLastVerse);
   const getChapterStatus = useReadingProgressStore((state) => state.getChapterStatus);
   const getBookStatus = useReadingProgressStore((state) => state.getBookStatus);
   const setLastPosition = useReadingProgressStore((state) => state.setLastPosition);
   const resumeTarget = useReadingProgressStore(selectResumeTarget);
+  const { markChapterCompleted } = useReadingProgressSyncActions(isOnline);
 
   const goToReader = useCallback((abbrev: string, chapter: number) => {
     setCurrentBook(abbrev);
@@ -45,6 +49,9 @@ function App() {
   const goHome = useCallback(() => {
     setView('home');
     setChapterMeta({ bookName: '', totalVerses: 0 });
+    setIndexOpen(false);
+    setChapterPickerBook(null);
+    setOrbMode('index');
     window.scrollTo({ top: 0 });
   }, []);
 
@@ -87,8 +94,10 @@ function App() {
 
   return (
     <div lang="es" role="application" aria-label="The Living Scripture — Biblia Latinoamericana Digital">
-      <MercuryCursor />
-      <FilmGrain />
+      <Suspense fallback={null}>
+        <MercuryCursor />
+        <FilmGrain />
+      </Suspense>
 
       <header role="banner">
         <DynamicNavbar
@@ -99,60 +108,72 @@ function App() {
 
       <main role="main" aria-live="polite">
         {view === 'home' && (
-          <Hero
-            onGetStarted={() => goToReader('genesis', 1)}
-            onExploreBooks={openBooks}
-            onContinueReading={resumeTarget ? () => goToReader(resumeTarget.book, resumeTarget.chapter) : undefined}
-            continueTarget={resumeTarget}
-          />
+          <Suspense fallback={<div className="min-h-[55vh]" />}>
+            <Hero
+              onGetStarted={() => goToReader('genesis', 1)}
+              onExploreBooks={openBooks}
+              onContinueReading={resumeTarget ? () => goToReader(resumeTarget.book, resumeTarget.chapter) : undefined}
+              continueTarget={resumeTarget}
+            />
+          </Suspense>
         )}
 
         {view === 'reader' && (
-          <ScriptureReader
-            bookAbbrev={currentBook}
-            chapter={currentChapter}
-            onChapterChange={handleChapterChange}
-            onChapterLoaded={handleChapterLoaded}
-            onGoHome={goHome}
-            onScrollProgress={updateChapterScroll}
-            onChapterCompleted={markChapterCompleted}
-            initialScrollPct={getChapterScrollPct(currentBook, currentChapter)}
-            initialLastVerse={getChapterLastVerse(currentBook, currentChapter)}
-            highlightFocus={activeHighlight}
-          />
+          <Suspense fallback={<div className="min-h-screen" />}>
+            <ScriptureReader
+              bookAbbrev={currentBook}
+              chapter={currentChapter}
+              onChapterChange={handleChapterChange}
+              onChapterLoaded={handleChapterLoaded}
+              onGoHome={goHome}
+              onScrollProgress={updateChapterScroll}
+              onChapterCompleted={markChapterCompleted}
+              initialScrollPct={getChapterScrollPct(currentBook, currentChapter)}
+              initialLastVerse={getChapterLastVerse(currentBook, currentChapter)}
+              highlightFocus={activeHighlight}
+            />
+          </Suspense>
         )}
       </main>
 
       <nav role="navigation" aria-label="Navegación de libros">
-        <NavigationOrb
-          key={orbMode === 'search' ? 'orb-search' : 'orb-index'}
-          isOpen={indexOpen}
-          onClose={() => {
-            setIndexOpen(false);
-            setChapterPickerBook(null);
-          }}
-          onNavigate={(abbrev, chapter) => goToReader(abbrev, chapter)}
-          currentBook={currentBook}
-          currentChapter={currentChapter}
-          initialBook={chapterPickerBook}
-          getChapterStatus={getChapterStatus}
-          getBookStatus={getBookStatus}
-          initialMode={orbMode}
-          onSearchNavigate={handleSearchNavigate}
-        />
+        {indexOpen && (
+          <Suspense fallback={null}>
+            <NavigationOrb
+              key={orbMode === 'search' ? 'orb-search' : 'orb-index'}
+              isOpen={indexOpen}
+              onClose={() => {
+                setIndexOpen(false);
+                setChapterPickerBook(null);
+              }}
+              onNavigate={(abbrev, chapter) => goToReader(abbrev, chapter)}
+              currentBook={currentBook}
+              currentChapter={currentChapter}
+              initialBook={chapterPickerBook}
+              getChapterStatus={getChapterStatus}
+              getBookStatus={getBookStatus}
+              initialMode={orbMode}
+              onSearchNavigate={handleSearchNavigate}
+              isOnline={isOnline}
+            />
+          </Suspense>
+        )}
       </nav>
 
-      <DialNavigation
-        view={view}
-        currentBook={currentBook}
-        onGoHome={goHome}
-        onOpenBooks={openBooks}
-        onOpenChapters={(abbrev) => {
-          setChapterPickerBook(abbrev);
-          setIndexOpen(true);
-        }}
-        onOpenSearch={openSearch}
-      />
+      <Suspense fallback={null}>
+        <DialNavigation
+          view={view}
+          currentBook={currentBook}
+          onGoHome={goHome}
+          onOpenBooks={openBooks}
+          onOpenChapters={(abbrev) => {
+            setOrbMode('index');
+            setChapterPickerBook(abbrev);
+            setIndexOpen(true);
+          }}
+          onOpenSearch={openSearch}
+        />
+      </Suspense>
     </div>
   );
 }

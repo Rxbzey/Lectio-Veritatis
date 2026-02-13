@@ -1,4 +1,9 @@
-import { bibliaLatinoamericana } from '../data/biblia-latinoamericana';
+import {
+  cacheBooks,
+  cacheChapter,
+  readCachedBooks,
+  readCachedChapter,
+} from '../storage/offlineBibleCache';
 
 // ── Types (kept compatible with previous API shape) ─────────────────
 
@@ -66,16 +71,43 @@ interface LocalBook {
   chapters: { number: number; verses: { number: number; text: string }[] }[];
 }
 
-const localBooks = bibliaLatinoamericana.books as LocalBook[];
+interface BibleDataset {
+  localBooks: LocalBook[];
+  slugToBook: Map<string, LocalBook>;
+  bookSlugs: string[];
+}
 
-// Map slug → local book for fast lookups
-const slugToBook = new Map<string, LocalBook>();
-const bookSlugs: string[] = [];
+let datasetPromise: Promise<BibleDataset> | null = null;
+export const BOOK_ORDER: string[] = [];
 
-for (const book of localBooks) {
-  const slug = slugify(book.name);
-  slugToBook.set(slug, book);
-  bookSlugs.push(slug);
+async function getBibleDataset(): Promise<BibleDataset> {
+  if (!datasetPromise) {
+    datasetPromise = (async () => {
+      const { bibliaLatinoamericana } = await import('../data/biblia-latinoamericana');
+      const localBooks = bibliaLatinoamericana.books as LocalBook[];
+
+      const slugToBook = new Map<string, LocalBook>();
+      const bookSlugs: string[] = [];
+
+      for (const book of localBooks) {
+        const slug = slugify(book.name);
+        slugToBook.set(slug, book);
+        bookSlugs.push(slug);
+      }
+
+      if (BOOK_ORDER.length === 0) {
+        BOOK_ORDER.push(...bookSlugs);
+      }
+
+      return {
+        localBooks,
+        slugToBook,
+        bookSlugs,
+      };
+    })();
+  }
+
+  return datasetPromise;
 }
 
 function testamentGroup(testament: string): { group: string; author: string } {
@@ -86,7 +118,7 @@ function testamentGroup(testament: string): { group: string; author: string } {
 
 // ── Public API (same signatures, zero network calls) ────────────────
 
-export async function getBooks(): Promise<Book[]> {
+function buildBooksFromLocalData(localBooks: LocalBook[]): Book[] {
   return localBooks.map((b) => {
     const slug = slugify(b.name);
     const { group } = testamentGroup(b.testament);
@@ -101,11 +133,15 @@ export async function getBooks(): Promise<Book[]> {
   });
 }
 
-export async function getChapter(abbrev: string, chapter: number): Promise<ChapterResponse> {
+function buildChapterFromLocalData(
+  slugToBook: Map<string, LocalBook>,
+  abbrev: string,
+  chapter: number
+): ChapterResponse {
   const book = slugToBook.get(abbrev);
   if (!book) throw new Error(`Libro no encontrado: ${abbrev}`);
 
-  const ch = book.chapters.find((c) => c.number === chapter);
+  const ch = book.chapters.find((currentChapter) => currentChapter.number === chapter);
   if (!ch) throw new Error(`Capítulo ${chapter} no encontrado en ${book.name}`);
 
   const { group, author } = testamentGroup(book.testament);
@@ -120,13 +156,44 @@ export async function getChapter(abbrev: string, chapter: number): Promise<Chapt
     },
     chapter: {
       number: ch.number,
-      verses: book.chapters.length, // total chapters (used by getNextChapter)
+      verses: book.chapters.length,
     },
-    verses: ch.verses.map((v) => ({ number: v.number, text: v.text })),
+    verses: ch.verses.map((verse) => ({ number: verse.number, text: verse.text })),
   };
 }
 
+export async function getBooks(): Promise<Book[]> {
+  const cachedBooks = await readCachedBooks();
+  if (cachedBooks && cachedBooks.length > 0) {
+    return cachedBooks;
+  }
+
+  const { localBooks } = await getBibleDataset();
+  const books = buildBooksFromLocalData(localBooks);
+  void cacheBooks(books);
+  return books;
+}
+
+export async function getChapter(abbrev: string, chapter: number): Promise<ChapterResponse> {
+  const cachedChapter = await readCachedChapter(abbrev, chapter);
+  if (cachedChapter) {
+    return cachedChapter;
+  }
+
+  const { slugToBook } = await getBibleDataset();
+  const chapterData = buildChapterFromLocalData(slugToBook, abbrev, chapter);
+  void cacheChapter(abbrev, chapter, chapterData);
+  return chapterData;
+}
+
+export async function warmOfflineBooksCache(): Promise<void> {
+  const { localBooks } = await getBibleDataset();
+  const books = buildBooksFromLocalData(localBooks);
+  await cacheBooks(books);
+}
+
 export async function searchVerses(query: string): Promise<SearchResponse> {
+  const { localBooks } = await getBibleDataset();
   const normalizedQuery = query.toLowerCase().trim();
   const results: SearchResult[] = [];
 
@@ -155,8 +222,6 @@ export async function searchVerses(query: string): Promise<SearchResponse> {
     verses: results,
   };
 }
-
-export const BOOK_ORDER = bookSlugs;
 
 export function getNextChapter(abbrev: string, chapter: number, totalChapters: number): { abbrev: string; chapter: number } | null {
   if (chapter < totalChapters) {
