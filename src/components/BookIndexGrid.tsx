@@ -1,7 +1,7 @@
 import type { MouseEvent } from 'react';
-import type { Book } from '../lib/api';
-import type { BookStatus } from '../hooks/useReadingProgress';
-import { toRoman } from '../utils/toRoman';
+import type { Book } from '@/lib/api';
+import type { BookStatus } from '@/hooks/useReadingProgress';
+import { toRoman } from '@/utils/toRoman';
 
 interface BookIndexGridProps {
   bookList: Book[];

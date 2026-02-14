@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
-import { useDialActions } from '../hooks/useDialActions';
-import type { DialAction } from '../hooks/useDialActions';
+import { useDialActions } from '@/hooks/useDialActions';
+import type { DialAction } from '@/hooks/useDialActions';
 
 type AppView = 'home' | 'reader';
 

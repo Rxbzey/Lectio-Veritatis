@@ -1,4 +1,4 @@
-import { bibliaLatinoamericana } from '../data/biblia-latinoamericana';
+import { bibliaLatinoamericana } from '@/data/biblia-latinoamericana';
 
 export interface RandomVerse {
   text: string;

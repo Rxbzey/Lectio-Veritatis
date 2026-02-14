@@ -1,4 +1,4 @@
-import type { Book, ChapterResponse } from '../lib/api';
+import type { Book, ChapterResponse } from '@/lib/api';
 
 const DB_NAME = 'living-scripture-offline';
 const DB_VERSION = 1;

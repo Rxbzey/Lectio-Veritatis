@@ -1,4 +1,4 @@
-import type { ChapterStatus } from '../hooks/useReadingProgress';
+import type { ChapterStatus } from '@/hooks/useReadingProgress';
 
 interface ChapterGridProps {
   totalChapters: number;

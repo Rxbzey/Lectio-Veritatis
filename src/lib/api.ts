@@ -3,7 +3,7 @@ import {
   cacheChapter,
   readCachedBooks,
   readCachedChapter,
-} from '../storage/offlineBibleCache';
+} from '@/storage/offlineBibleCache';
 
 // ── Types (kept compatible with previous API shape) ─────────────────
 

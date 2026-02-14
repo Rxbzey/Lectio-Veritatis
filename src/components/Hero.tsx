@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import gsap from 'gsap';
-import { MagneticButton } from './MagneticButton';
-import { getRandomVerse } from '../data/bibleVerses';
+import { MagneticButton } from '@/components/MagneticButton';
+import { getRandomVerse } from '@/data/bibleVerses';
 
 interface HeroProps {
   onGetStarted: () => void;

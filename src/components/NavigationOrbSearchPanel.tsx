@@ -1,6 +1,6 @@
 import { type ChangeEvent, type RefObject } from 'react';
-import type { SearchResult } from '../lib/api';
-import type { SearchStatus } from '../hooks/useNavigationOrbSearch';
+import type { SearchResult } from '@/lib/api';
+import type { SearchStatus } from '@/hooks/useNavigationOrbSearch';
 
 interface NavigationOrbSearchPanelProps {
   searchInputRef: RefObject<HTMLInputElement | null>;
@@ -24,7 +24,6 @@ export function NavigationOrbSearchPanel({
   onQueryChange,
   isOnline = true,
   searchStatusLabel,
-  showHelper,
   searchStatus,
   searchError,
   hasSearched,

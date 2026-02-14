@@ -1,4 +1,4 @@
-import { bibliaLatinoamericana } from './biblia-latinoamericana';
+import { bibliaLatinoamericana } from '@/data/biblia-latinoamericana';
 
 export interface BibleVerse {
   text: string;

@@ -1,7 +1,7 @@
-import { useOfflineBibleBootstrap } from './useOfflineBibleBootstrap';
-import { useNetworkStatus } from './useNetworkStatus';
-import { useProgressSyncQueue } from './useProgressSyncQueue';
-import { useServiceWorkerRegistration } from './useServiceWorkerRegistration';
+import { useOfflineBibleBootstrap } from '@/hooks/useOfflineBibleBootstrap';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useProgressSyncQueue } from '@/hooks/useProgressSyncQueue';
+import { useServiceWorkerRegistration } from '@/hooks/useServiceWorkerRegistration';
 
 export function useOfflineSupport() {
   useServiceWorkerRegistration();

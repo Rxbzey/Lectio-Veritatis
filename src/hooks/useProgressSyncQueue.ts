@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { drainProgressSyncQueue, type ProgressSyncEvent } from '../storage/offlineBibleCache';
+import { drainProgressSyncQueue, type ProgressSyncEvent } from '@/storage/offlineBibleCache';
 
 async function syncProgressEvent(event: ProgressSyncEvent): Promise<boolean> {
   // Placeholder for future backend sync.

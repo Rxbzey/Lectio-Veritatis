@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import { useScrollProgress } from '../hooks/useScrollProgress';
+import { useScrollProgress } from '@/hooks/useScrollProgress';
 
 type AppView = 'home' | 'reader';
 

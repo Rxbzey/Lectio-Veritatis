@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { warmOfflineBooksCache } from '../lib/api';
+import { warmOfflineBooksCache } from '@/lib/api';
 
 export function useOfflineBibleBootstrap() {
   useEffect(() => {

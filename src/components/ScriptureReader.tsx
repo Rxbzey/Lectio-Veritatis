@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { getChapter, getNextChapter } from '../lib/api';
-import type { ChapterResponse } from '../lib/api';
-import { Verse } from './Verse';
-import { ChapterTransition } from './ChapterTransition';
+import { getChapter, getNextChapter } from '@/lib/api';
+import type { ChapterResponse } from '@/lib/api';
+import { Verse } from '@/components/Verse';
+import { ChapterTransition } from '@/components/ChapterTransition';
 
 gsap.registerPlugin(ScrollTrigger);
 

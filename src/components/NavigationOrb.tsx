@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
-import type { Book, SearchResult } from '../lib/api';
-import { getBooks } from '../lib/api';
-import { useNavigationOrbSearch } from '../hooks/useNavigationOrbSearch';
-import { NavigationOrbSearchPanel } from './NavigationOrbSearchPanel';
-import { BookIndexGrid } from './BookIndexGrid';
-import { ChapterGrid } from './ChapterGrid';
-import type { ChapterStatus, BookStatus } from '../hooks/useReadingProgress';
-import { toRoman } from '../utils/toRoman';
+import type { Book, SearchResult } from '@/lib/api';
+import { getBooks } from '@/lib/api';
+import { useNavigationOrbSearch } from '@/hooks/useNavigationOrbSearch';
+import { NavigationOrbSearchPanel } from '@/components/NavigationOrbSearchPanel';
+import { BookIndexGrid } from '@/components/BookIndexGrid';
+import { ChapterGrid } from '@/components/ChapterGrid';
+import type { ChapterStatus, BookStatus } from '@/hooks/useReadingProgress';
+import { toRoman } from '@/utils/toRoman';
 
 interface NavigationOrbProps {
   isOpen: boolean;

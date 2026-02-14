@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo, type ChangeEvent } from 'react';
-import { searchVerses } from '../lib/api';
-import type { SearchResult } from '../lib/api';
+import { searchVerses } from '@/lib/api';
+import type { SearchResult } from '@/lib/api';
 
 export type SearchStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error';
 

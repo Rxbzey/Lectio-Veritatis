@@ -1,20 +1,20 @@
 import { lazy, Suspense, useState, useCallback, useMemo } from 'react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
-import { useSmoothScroll } from './hooks/useSmoothScroll';
-import { useReadingProgressStore, selectResumeTarget } from './hooks/useReadingProgress';
-import { DynamicNavbar } from './components/DynamicNavbar';
-import type { ChapterResponse } from './lib/api';
-import { useOfflineSupport } from './hooks/useOfflineSupport';
-import { useReadingProgressSyncActions } from './hooks/useReadingProgressSyncActions';
+import { useSmoothScroll } from '@/hooks/useSmoothScroll';
+import { useReadingProgressStore, selectResumeTarget } from '@/hooks/useReadingProgress';
+import { DynamicNavbar } from '@/components/DynamicNavbar';
+import type { ChapterResponse } from '@/lib/api';
+import { useOfflineSupport } from '@/hooks/useOfflineSupport';
+import { useReadingProgressSyncActions } from '@/hooks/useReadingProgressSyncActions';
 
 type AppView = 'home' | 'reader';
 
-const Hero = lazy(() => import('./components/Hero').then((module) => ({ default: module.Hero })));
-const ScriptureReader = lazy(() => import('./components/ScriptureReader').then((module) => ({ default: module.ScriptureReader })));
-const NavigationOrb = lazy(() => import('./components/NavigationOrb').then((module) => ({ default: module.NavigationOrb })));
-const FilmGrain = lazy(() => import('./components/FilmGrain').then((module) => ({ default: module.FilmGrain })));
-const MercuryCursor = lazy(() => import('./components/MercuryCursor').then((module) => ({ default: module.MercuryCursor })));
-const DialNavigation = lazy(() => import('./components/DialNavigation').then((module) => ({ default: module.DialNavigation })));
+const Hero = lazy(() => import('@/components/Hero').then((module) => ({ default: module.Hero })));
+const ScriptureReader = lazy(() => import('@/components/ScriptureReader').then((module) => ({ default: module.ScriptureReader })));
+const NavigationOrb = lazy(() => import('@/components/NavigationOrb').then((module) => ({ default: module.NavigationOrb })));
+const FilmGrain = lazy(() => import('@/components/FilmGrain').then((module) => ({ default: module.FilmGrain })));
+const MercuryCursor = lazy(() => import('@/components/MercuryCursor').then((module) => ({ default: module.MercuryCursor })));
+const DialNavigation = lazy(() => import('@/components/DialNavigation').then((module) => ({ default: module.DialNavigation })));
 
 function App() {
   const [view, setView] = useState<AppView>('home');

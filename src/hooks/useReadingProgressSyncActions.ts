@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { enqueueProgressSyncEvent } from '../storage/offlineBibleCache';
-import { useReadingProgressStore } from './useReadingProgress';
+import { enqueueProgressSyncEvent } from '@/storage/offlineBibleCache';
+import { useReadingProgressStore } from '@/hooks/useReadingProgress';
 
 export function useReadingProgressSyncActions(isOnline: boolean) {
   const markChapterCompletedInStore = useReadingProgressStore((state) => state.markChapterCompleted);
