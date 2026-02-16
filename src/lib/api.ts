@@ -80,6 +80,10 @@ interface BibleDataset {
 let datasetPromise: Promise<BibleDataset> | null = null;
 export const BOOK_ORDER: string[] = [];
 
+function waitForNextTick() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 async function getBibleDataset(): Promise<BibleDataset> {
   if (!datasetPromise) {
     datasetPromise = (async () => {
@@ -190,6 +194,51 @@ export async function warmOfflineBooksCache(): Promise<void> {
   const { localBooks } = await getBibleDataset();
   const books = buildBooksFromLocalData(localBooks);
   await cacheBooks(books);
+}
+
+interface WarmOfflineChaptersOptions {
+  signal?: AbortSignal;
+  batchSize?: number;
+  onProgress?: (payload: {
+    processedChapters: number;
+    totalChapters: number;
+    bookSlug: string;
+    chapterNumber: number;
+  }) => void;
+}
+
+export async function warmOfflineChaptersCache(options?: WarmOfflineChaptersOptions): Promise<void> {
+  const { slugToBook } = await getBibleDataset();
+  const entries = Array.from(slugToBook.entries());
+  const totalChapters = entries.reduce((sum, [, book]) => sum + book.chapters.length, 0);
+  const batchSize = Math.max(1, options?.batchSize ?? 8);
+  let processedChapters = 0;
+
+  for (const [slug, book] of entries) {
+    if (options?.signal?.aborted) return;
+
+    for (const chapterInfo of book.chapters) {
+      if (options?.signal?.aborted) return;
+
+      const cachedChapter = await readCachedChapter(slug, chapterInfo.number);
+      if (!cachedChapter) {
+        const chapterData = buildChapterFromLocalData(slugToBook, slug, chapterInfo.number);
+        await cacheChapter(slug, chapterInfo.number, chapterData);
+      }
+
+      processedChapters += 1;
+      options?.onProgress?.({
+        processedChapters,
+        totalChapters,
+        bookSlug: slug,
+        chapterNumber: chapterInfo.number,
+      });
+
+      if (processedChapters % batchSize === 0) {
+        await waitForNextTick();
+      }
+    }
+  }
 }
 
 export async function searchVerses(query: string): Promise<SearchResponse> {
