@@ -34,6 +34,7 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,svg,png,ico,txt,xml,json}'],
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.destination === 'document',
