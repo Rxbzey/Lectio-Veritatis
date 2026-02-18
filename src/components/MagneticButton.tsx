@@ -51,7 +51,7 @@ export function MagneticButton({ children, onClick, variant = 'secondary', class
           className="absolute -inset-6 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"
           style={{
             background: 'radial-gradient(ellipse at center, rgba(201,168,76,0.05) 0%, transparent 70%)',
-            filter: 'blur(12px)',
+            filter: 'blur(8px)',
           }}
         />
       )}

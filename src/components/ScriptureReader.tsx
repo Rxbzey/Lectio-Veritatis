@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, type RefObject } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { getChapter, getNextChapter } from '@/lib/api';
@@ -70,6 +70,150 @@ function groupVersesByWordLimit(
   }
 
   return groups;
+}
+
+function ScriptureReaderLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="flex flex-col items-center gap-8">
+        <div className="relative w-10 h-10">
+          <div className="absolute inset-0 border border-gold/20 rounded-full animate-ping" />
+          <div className="absolute inset-2 border border-gold/40 rounded-full animate-pulse" />
+        </div>
+        <p className="font-sans text-[10px] tracking-[0.5em] uppercase text-cream/20">
+          Revelando la palabra
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ScriptureReaderError({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center px-8">
+        <div className="w-12 h-px bg-gold/20 mx-auto mb-8" />
+        <p className="font-sans text-[10px] tracking-[0.4em] uppercase text-gold/40 mb-4">Error al cargar</p>
+        <p className="font-serif text-xl md:text-2xl text-cream/50 mb-8 leading-relaxed">{error}</p>
+        <button
+          onClick={onRetry}
+          className="font-sans text-[10px] tracking-[0.3em] uppercase text-gold/50 hover:text-gold cursor-pointer transition-colors duration-500 pb-1"
+          style={{ borderBottom: '1px solid rgba(201, 168, 76, 0.2)' }}
+        >
+          Reintentar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ChapterHero({
+  heroRef,
+  titleRef,
+  metaRef,
+  chapterData,
+}: {
+  heroRef: RefObject<HTMLDivElement | null>;
+  titleRef: RefObject<HTMLHeadingElement | null>;
+  metaRef: RefObject<HTMLDivElement | null>;
+  chapterData: ChapterResponse;
+}) {
+  return (
+    <div
+      ref={heroRef}
+      className="h-screen flex items-center justify-center relative overflow-hidden"
+    >
+      <div className="chapter-watermark">
+        {chapterData.chapter.number}
+      </div>
+
+      <div className="text-center relative z-10 px-8">
+        <h1
+          ref={titleRef}
+          className="font-serif text-5xl sm:text-6xl md:text-8xl lg:text-9xl xl:text-[10rem] text-cream-bright leading-[0.85] tracking-[-0.02em] opacity-0"
+        >
+          {chapterData.book.name}
+        </h1>
+
+        <div ref={metaRef} className="mt-8 md:mt-12 opacity-0">
+          <div className="flex items-center justify-center gap-6">
+            <div className="w-8 md:w-16 h-px bg-gold/20" />
+            <span className="font-sans text-[10px] md:text-xs tracking-[0.5em] uppercase text-gold/60">
+              Capítulo {chapterData.chapter.number}
+            </span>
+            <div className="w-8 md:w-16 h-px bg-gold/20" />
+          </div>
+          <p className="font-sans text-[9px] md:text-[10px] tracking-[0.4em] uppercase text-cream/40 mt-4">
+            {chapterData.book.author} · {chapterData.book.group}
+          </p>
+        </div>
+      </div>
+
+      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 opacity-30">
+        <span className="font-sans text-[8px] tracking-[0.5em] uppercase text-cream/40">
+          Scroll
+        </span>
+        <div className="w-px h-8 bg-linear-to-b from-gold/40 to-transparent" />
+      </div>
+    </div>
+  );
+}
+
+function ChapterEnd({
+  chapterData,
+  nextChapter,
+  onGoHome,
+  onNextChapter,
+}: {
+  chapterData: ChapterResponse;
+  nextChapter: { abbrev: string; chapter: number } | null;
+  onGoHome: () => void;
+  onNextChapter: () => void;
+}) {
+  return (
+    <div className="min-h-[55vh] flex items-center justify-center py-24">
+      <div className="text-center space-y-6">
+        <div className="w-px h-16 bg-linear-to-b from-transparent via-gold/30 to-transparent mx-auto" />
+        <p className="font-sans text-[9px] tracking-[0.55em] uppercase text-cream/55">
+          Fin del capítulo {chapterData.chapter.number}
+        </p>
+        <p className="font-serif text-2xl md:text-[2.5rem] text-cream/50 italic tracking-[0.08em]">
+          {chapterData.book.name}
+        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-8 pt-6">
+          <button
+            onClick={onGoHome}
+            className="group relative cursor-pointer py-2"
+            data-cursor-hover
+          >
+            <span className="font-serif text-[12px] md:text-[13px] tracking-[0.4em] uppercase text-cream/55 group-hover:text-cream/70 transition-colors duration-700">
+              Finalizar
+            </span>
+            <span
+              className="absolute bottom-0 left-0 w-full h-px origin-center transition-transform duration-700 group-hover:scale-x-100 scale-x-50"
+              style={{ background: 'linear-gradient(90deg, transparent, rgba(212,207,197,0.25), rgba(212,207,197,0.4), rgba(212,207,197,0.25), transparent)' }}
+            />
+          </button>
+
+          {nextChapter && (
+            <button
+              onClick={onNextChapter}
+              className="group relative cursor-pointer py-2"
+              data-cursor-hover
+            >
+              <span className="font-serif text-[12px] md:text-[13px] tracking-[0.4em] uppercase text-gold/70 group-hover:text-gold transition-colors duration-700">
+                Siguiente Capítulo
+              </span>
+              <span
+                className="absolute bottom-0 left-0 w-full h-px origin-center transition-transform duration-700 group-hover:scale-x-100 scale-x-50"
+                style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.45), rgba(201,168,76,0.7), rgba(201,168,76,0.45), transparent)' }}
+              />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function ScriptureReader({
@@ -281,38 +425,11 @@ export function ScriptureReader({
   );
 
   if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center px-8">
-          <div className="w-12 h-px bg-gold/20 mx-auto mb-8" />
-          <p className="font-sans text-[10px] tracking-[0.4em] uppercase text-gold/40 mb-4">Error al cargar</p>
-          <p className="font-serif text-xl md:text-2xl text-cream/50 mb-8 leading-relaxed">{error}</p>
-          <button
-            onClick={() => loadChapter(bookAbbrev, chapter)}
-            className="font-sans text-[10px] tracking-[0.3em] uppercase text-gold/50 hover:text-gold cursor-pointer transition-colors duration-500 pb-1"
-            style={{ borderBottom: '1px solid rgba(201, 168, 76, 0.2)' }}
-          >
-            Reintentar
-          </button>
-        </div>
-      </div>
-    );
+    return <ScriptureReaderError error={error} onRetry={() => loadChapter(bookAbbrev, chapter)} />;
   }
 
   if (loading || !chapterData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-8">
-          <div className="relative w-10 h-10">
-            <div className="absolute inset-0 border border-gold/20 rounded-full animate-ping" />
-            <div className="absolute inset-2 border border-gold/40 rounded-full animate-pulse" />
-          </div>
-          <p className="font-sans text-[10px] tracking-[0.5em] uppercase text-cream/20">
-            Revelando la palabra
-          </p>
-        </div>
-      </div>
-    );
+    return <ScriptureReaderLoading />;
   }
 
   const nextChapter = chapterData ? getNextChapter(bookAbbrev, chapter, chapterData.chapter.verses) : null;
@@ -335,45 +452,7 @@ export function ScriptureReader({
       </div>
 
       <div ref={containerRef} className="relative">
-        {/* Hero section — full viewport centered */}
-        <div
-          ref={heroRef}
-          className="h-screen flex items-center justify-center relative overflow-hidden"
-        >
-          <div className="chapter-watermark">
-            {chapterData.chapter.number}
-          </div>
-
-          <div className="text-center relative z-10 px-8">
-            <h1
-              ref={titleRef}
-              className="font-serif text-5xl sm:text-6xl md:text-8xl lg:text-9xl xl:text-[10rem] text-cream-bright leading-[0.85] tracking-[-0.02em] opacity-0"
-            >
-              {chapterData.book.name}
-            </h1>
-
-            <div ref={metaRef} className="mt-8 md:mt-12 opacity-0">
-              <div className="flex items-center justify-center gap-6">
-                <div className="w-8 md:w-16 h-px bg-gold/20" />
-                <span className="font-sans text-[10px] md:text-xs tracking-[0.5em] uppercase text-gold/60">
-                  Capítulo {chapterData.chapter.number}
-                </span>
-                <div className="w-8 md:w-16 h-px bg-gold/20" />
-              </div>
-              <p className="font-sans text-[9px] md:text-[10px] tracking-[0.4em] uppercase text-cream/40 mt-4">
-                {chapterData.book.author} · {chapterData.book.group}
-              </p>
-            </div>
-          </div>
-
-          {/* Scroll hint */}
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 opacity-30">
-            <span className="font-sans text-[8px] tracking-[0.5em] uppercase text-cream/40">
-              Scroll
-            </span>
-            <div className="w-px h-8 bg-linear-to-b from-gold/40 to-transparent" />
-          </div>
-        </div>
+        <ChapterHero heroRef={heroRef} titleRef={titleRef} metaRef={metaRef} chapterData={chapterData} />
 
         {/* Verses */}
         <div className="relative z-10 mx-auto">
@@ -387,7 +466,7 @@ export function ScriptureReader({
               <Verse
                 key={`${bookAbbrev}-${chapter}-${firstVerse}-${lastVerse}-${highlightFocus?.token ?? 'default'}`}
                 verses={verseGroup}
-                index={index}
+                groupIndex={index}
                 bookName={chapterData.book.name}
                 chapter={chapterData.chapter.number}
                 isOldTestament={chapterData.book.group === 'Antiguo Testamento'}
@@ -398,51 +477,7 @@ export function ScriptureReader({
           })}
         </div>
 
-        {/* End of chapter */}
-        <div className="min-h-[55vh] flex items-center justify-center py-24">
-          <div className="text-center space-y-6">
-            <div className="w-px h-16 bg-linear-to-b from-transparent via-gold/30 to-transparent mx-auto" />
-            <p className="font-sans text-[9px] tracking-[0.55em] uppercase text-cream/55">
-              Fin del capítulo {chapterData.chapter.number}
-            </p>
-            <p className="font-serif text-2xl md:text-[2.5rem] text-cream/50 italic tracking-[0.08em]">
-              {chapterData.book.name}
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-8 pt-6">
-              {/* Finalizar — go home */}
-              <button
-                onClick={onGoHome}
-                className="group relative cursor-pointer py-2"
-                data-cursor-hover
-              >
-                <span className="font-serif text-[12px] md:text-[13px] tracking-[0.4em] uppercase text-cream/55 group-hover:text-cream/70 transition-colors duration-700">
-                  Finalizar
-                </span>
-                <span
-                  className="absolute bottom-0 left-0 w-full h-px origin-center transition-transform duration-700 group-hover:scale-x-100 scale-x-50"
-                  style={{ background: 'linear-gradient(90deg, transparent, rgba(212,207,197,0.25), rgba(212,207,197,0.4), rgba(212,207,197,0.25), transparent)' }}
-                />
-              </button>
-
-              {/* Siguiente capítulo */}
-              {nextChapter && (
-                <button
-                  onClick={handleNextChapter}
-                  className="group relative cursor-pointer py-2"
-                  data-cursor-hover
-                >
-                  <span className="font-serif text-[12px] md:text-[13px] tracking-[0.4em] uppercase text-gold/70 group-hover:text-gold transition-colors duration-700">
-                    Siguiente Capítulo
-                  </span>
-                  <span
-                    className="absolute bottom-0 left-0 w-full h-px origin-center transition-transform duration-700 group-hover:scale-x-100 scale-x-50"
-                    style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.45), rgba(201,168,76,0.7), rgba(201,168,76,0.45), transparent)' }}
-                  />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <ChapterEnd chapterData={chapterData} nextChapter={nextChapter} onGoHome={onGoHome} onNextChapter={handleNextChapter} />
       </div>
     </>
   );

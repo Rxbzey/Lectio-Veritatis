@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, type RefObject } from 'react';
 import gsap from 'gsap';
 import type { Book, SearchResult } from '@/lib/api';
 import { getBooks } from '@/lib/api';
@@ -8,6 +8,117 @@ import { BookIndexGrid } from '@/components/BookIndexGrid';
 import { ChapterGrid } from '@/components/ChapterGrid';
 import type { ChapterStatus, BookStatus } from '@/hooks/useReadingProgress';
 import { toRoman } from '@/utils/toRoman';
+
+function useNavigationOrbAnimations(
+  panelRef: RefObject<HTMLDivElement | null>,
+  closeRef: RefObject<HTMLButtonElement | null>,
+  isOpen: boolean,
+  selectedBook: string | null,
+) {
+  useEffect(() => {
+    if (!isOpen || !panelRef.current) return;
+
+    const panel = panelRef.current;
+    const tl = gsap.timeline();
+
+    tl.fromTo(panel, { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out' });
+
+    const header = panel.querySelector('.idx-header');
+    if (header) {
+      tl.fromTo(header, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }, 0.2);
+    }
+
+    const sectionTitles = panel.querySelectorAll('.section-title');
+    if (sectionTitles.length > 0) {
+      tl.fromTo(
+        sectionTitles,
+        { opacity: 0, x: -30 },
+        { opacity: 1, x: 0, duration: 0.7, stagger: 0.15, ease: 'power3.out' },
+        0.35
+      );
+    }
+
+    const items = panel.querySelectorAll('.book-item');
+    if (items.length > 0) {
+      tl.fromTo(
+        items,
+        { opacity: 0, y: 24 },
+        { opacity: 1, y: 0, duration: 0.6, stagger: 0.02, ease: 'power3.out' },
+        0.45
+      );
+    }
+
+    const divider = panel.querySelector('.testament-divider');
+    if (divider) {
+      tl.fromTo(divider, { scaleX: 0 }, { scaleX: 1, duration: 1, ease: 'expo.out' }, 0.6);
+    }
+
+    return () => { tl.kill(); };
+  }, [isOpen, selectedBook]);
+
+  useEffect(() => {
+    if (!closeRef.current) return;
+    const btn = closeRef.current;
+    const icon = btn.querySelector('.close-icon') as HTMLElement;
+    if (!icon) return;
+
+    const onEnter = () => gsap.to(icon, { rotation: 90, duration: 0.5, ease: 'power3.out' });
+    const onLeave = () => gsap.to(icon, { rotation: 0, duration: 0.5, ease: 'power3.out' });
+
+    btn.addEventListener('mouseenter', onEnter);
+    btn.addEventListener('mouseleave', onLeave);
+    return () => {
+      btn.removeEventListener('mouseenter', onEnter);
+      btn.removeEventListener('mouseleave', onLeave);
+    };
+  }, [isOpen]);
+}
+
+interface NavigationOrbHeaderProps {
+  selectedBook: string | null;
+  mode: 'index' | 'search';
+  books: Book[];
+  closeRef: RefObject<HTMLButtonElement | null>;
+  onClose: () => void;
+}
+
+function NavigationOrbHeader({ selectedBook, mode, books, closeRef, onClose }: NavigationOrbHeaderProps) {
+  return (
+    <div className="idx-header flex items-end justify-between shrink-0"
+      style={{ padding: '3rem 10vw 0' }}
+    >
+      <div>
+        <p className="font-sans text-[9px] md:text-[10px] tracking-[0.5em] uppercase text-gold/50 mb-3">
+          {selectedBook
+            ? 'Selecciona capítulo'
+            : mode === 'search'
+            ? 'Motor de búsqueda'
+            : 'Índice Tipográfico'}
+        </p>
+        <h2 className="font-serif text-4xl md:text-6xl lg:text-7xl text-cream/90 tracking-tight leading-none">
+          {selectedBook
+            ? books.find((b) => b.abbrev.pt === selectedBook)?.name || ''
+            : mode === 'search'
+            ? 'Buscar en las Escrituras'
+            : 'Escrituras'}
+        </h2>
+      </div>
+
+      <button
+        ref={closeRef}
+        onClick={onClose}
+        className="cursor-pointer group mb-2"
+        aria-label="Cerrar"
+        data-cursor-hover
+      >
+        <div className="close-icon w-6 h-6 relative">
+          <span className="block w-full h-px bg-cream/30 absolute top-1/2 left-0 rotate-45 group-hover:bg-gold transition-colors duration-500" />
+          <span className="block w-full h-px bg-cream/30 absolute top-1/2 left-0 -rotate-45 group-hover:bg-gold transition-colors duration-500" />
+        </div>
+      </button>
+    </div>
+  );
+}
 
 interface NavigationOrbProps {
   isOpen: boolean;
@@ -56,7 +167,6 @@ export function NavigationOrb({
     clearSearchState,
     showHelper,
     searchStatusLabel,
-    renderHighlightedText,
   } = useNavigationOrbSearch({ mode });
 
   useEffect(() => {
@@ -118,74 +228,10 @@ export function NavigationOrb({
       debouncedQuery={debouncedQuery}
       searchResults={searchResults}
       onSelectResult={handleSearchResultSelect}
-      renderHighlightedText={renderHighlightedText}
     />
   );
 
-  // Panel enter animation — stagger cascade
-  useEffect(() => {
-    if (!isOpen || !panelRef.current) return;
-
-    const panel = panelRef.current;
-    const tl = gsap.timeline();
-
-    // Fade in backdrop
-    tl.fromTo(panel, { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out' });
-
-    // Header elements
-    const header = panel.querySelector('.idx-header');
-    if (header) {
-      tl.fromTo(header, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }, 0.2);
-    }
-
-    // Section titles
-    const sectionTitles = panel.querySelectorAll('.section-title');
-    if (sectionTitles.length > 0) {
-      tl.fromTo(
-        sectionTitles,
-        { opacity: 0, x: -30 },
-        { opacity: 1, x: 0, duration: 0.7, stagger: 0.15, ease: 'power3.out' },
-        0.35
-      );
-    }
-
-    // Book items — stagger cascade row by row
-    const items = panel.querySelectorAll('.book-item');
-    if (items.length > 0) {
-      tl.fromTo(
-        items,
-        { opacity: 0, y: 24 },
-        { opacity: 1, y: 0, duration: 0.6, stagger: 0.02, ease: 'power3.out' },
-        0.45
-      );
-    }
-
-    // Divider
-    const divider = panel.querySelector('.testament-divider');
-    if (divider) {
-      tl.fromTo(divider, { scaleX: 0 }, { scaleX: 1, duration: 1, ease: 'expo.out' }, 0.6);
-    }
-
-    return () => { tl.kill(); };
-  }, [isOpen, selectedBook]);
-
-  // Close button hover rotation
-  useEffect(() => {
-    if (!closeRef.current) return;
-    const btn = closeRef.current;
-    const icon = btn.querySelector('.close-icon') as HTMLElement;
-    if (!icon) return;
-
-    const onEnter = () => gsap.to(icon, { rotation: 90, duration: 0.5, ease: 'power3.out' });
-    const onLeave = () => gsap.to(icon, { rotation: 0, duration: 0.5, ease: 'power3.out' });
-
-    btn.addEventListener('mouseenter', onEnter);
-    btn.addEventListener('mouseleave', onLeave);
-    return () => {
-      btn.removeEventListener('mouseenter', onEnter);
-      btn.removeEventListener('mouseleave', onLeave);
-    };
-  }, [isOpen]);
+  useNavigationOrbAnimations(panelRef, closeRef, isOpen, selectedBook);
 
   // GSAP hover effect for book items
   const handleBookEnter = useCallback((e: React.MouseEvent, book: Book, index: number) => {
@@ -232,41 +278,13 @@ export function NavigationOrb({
       className="fixed inset-0 z-50 bg-black/97 backdrop-blur-2xl flex flex-col overflow-hidden"
       style={{ opacity: 0 }}
     >
-      {/* Header — editorial style */}
-      <div className="idx-header flex items-end justify-between shrink-0"
-        style={{ padding: '3rem 10vw 0' }}
-      >
-        <div>
-          <p className="font-sans text-[9px] md:text-[10px] tracking-[0.5em] uppercase text-gold/50 mb-3">
-            {selectedBook
-              ? 'Selecciona capítulo'
-              : mode === 'search'
-              ? 'Motor de búsqueda'
-              : 'Índice Tipográfico'}
-          </p>
-          <h2 className="font-serif text-4xl md:text-6xl lg:text-7xl text-cream/90 tracking-tight leading-none">
-            {selectedBook
-              ? books.find((b) => b.abbrev.pt === selectedBook)?.name || ''
-              : mode === 'search'
-              ? 'Buscar en las Escrituras'
-              : 'Escrituras'}
-          </h2>
-        </div>
-
-        {/* Minimal close — two lines, no circle, rotate on hover */}
-        <button
-          ref={closeRef}
-          onClick={handleClose}
-          className="cursor-pointer group mb-2"
-          aria-label="Cerrar"
-          data-cursor-hover
-        >
-          <div className="close-icon w-6 h-6 relative">
-            <span className="block w-full h-px bg-cream/30 absolute top-1/2 left-0 rotate-45 group-hover:bg-gold transition-colors duration-500" />
-            <span className="block w-full h-px bg-cream/30 absolute top-1/2 left-0 -rotate-45 group-hover:bg-gold transition-colors duration-500" />
-          </div>
-        </button>
-      </div>
+      <NavigationOrbHeader
+        selectedBook={selectedBook}
+        mode={mode}
+        books={books}
+        closeRef={closeRef}
+        onClose={handleClose}
+      />
 
       {/* Hovered roman numeral — large background watermark */}
       {mode === 'index' && hoveredIndex >= 0 && !selectedBook && (

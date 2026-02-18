@@ -1,6 +1,6 @@
 import { bibliaLatinoamericana } from '@/data/biblia-latinoamericana';
 
-export interface BibleVerse {
+interface BibleVerse {
   text: string;
   reference: string;
 }

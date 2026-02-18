@@ -148377,5 +148377,3 @@ export const bibliaLatinoamericana = {
     }
   ]
 };
-
-export default bibliaLatinoamericana;

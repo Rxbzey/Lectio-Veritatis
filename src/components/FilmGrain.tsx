@@ -1,5 +1,5 @@
-import { useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { useMemo, useEffect } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 const grainVertexShader = `
@@ -59,37 +59,40 @@ const grainFragmentShader = `
 `;
 
 function GrainPlane() {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const { geometry, material, mesh } = useMemo(() => {
+    const geo = new THREE.PlaneGeometry(2, 2);
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: grainVertexShader,
+      fragmentShader: grainFragmentShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+      },
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const m = new THREE.Mesh(geo, mat);
+    return { geometry: geo, material: mat, mesh: m };
+  }, []);
 
-  const uniforms = useMemo(
-    () => ({
-      uTime: { value: 0 },
-      uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-    }),
-    []
-  );
+  const { scene } = useThree();
+
+  useEffect(() => {
+    scene.add(mesh);
+    return () => {
+      scene.remove(mesh);
+      geometry.dispose();
+      material.dispose();
+    };
+  }, [scene, mesh, geometry, material]);
 
   useFrame(({ clock }) => {
-    if (meshRef.current) {
-      const material = meshRef.current.material as THREE.ShaderMaterial;
-      material.uniforms.uTime.value = clock.getElapsedTime();
-      material.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
-    }
+    material.uniforms.uTime.value = clock.getElapsedTime();
+    material.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
   });
 
-  return (
-    <mesh ref={meshRef}>
-      <planeGeometry args={[2, 2]} />
-      <shaderMaterial
-        vertexShader={grainVertexShader}
-        fragmentShader={grainFragmentShader}
-        uniforms={uniforms}
-        transparent
-        depthWrite={false}
-        depthTest={false}
-      />
-    </mesh>
-  );
+  return null;
 }
 
 export function FilmGrain() {

@@ -1,5 +1,6 @@
 import { type ChangeEvent, type RefObject } from 'react';
 import type { SearchResult } from '@/lib/api';
+import { HighlightedText } from '@/hooks/useNavigationOrbSearch';
 import type { SearchStatus } from '@/hooks/useNavigationOrbSearch';
 
 interface NavigationOrbSearchPanelProps {
@@ -15,7 +16,6 @@ interface NavigationOrbSearchPanelProps {
   debouncedQuery: string;
   searchResults: SearchResult[];
   onSelectResult: (result: SearchResult) => void;
-  renderHighlightedText: (text: string) => React.ReactNode;
 }
 
 export function NavigationOrbSearchPanel({
@@ -30,7 +30,6 @@ export function NavigationOrbSearchPanel({
   debouncedQuery,
   searchResults,
   onSelectResult,
-  renderHighlightedText,
 }: NavigationOrbSearchPanelProps) {
   return (
     <div className="space-y-6">
@@ -111,7 +110,7 @@ export function NavigationOrbSearchPanel({
                   </div>
                 </div>
                 <p className="font-serif text-lg text-cream/80 leading-relaxed relative z-10">
-                  {renderHighlightedText(result.text)}
+                  <HighlightedText text={result.text} query={debouncedQuery} />
                 </p>
               </button>
             </div>

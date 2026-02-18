@@ -6,7 +6,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 interface VerseProps {
   verses: { number: number; text: string }[];
-  index: number;
+  groupIndex: number;
   bookName: string;
   chapter: number;
   isOldTestament?: boolean;
@@ -18,9 +18,40 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+interface VerseTextProps {
+  verseNumber: number;
+  verseText: string;
+  highlightRegex: RegExp | null;
+  highlightedVerse: number | undefined;
+}
+
+function VerseText({ verseNumber, verseText, highlightRegex, highlightedVerse }: VerseTextProps) {
+  if (!highlightRegex || highlightedVerse !== verseNumber) {
+    return <>{verseText}</>;
+  }
+
+  let charOffset = 0;
+  return (
+    <>
+      {verseText.split(highlightRegex).map((segment, i) => {
+        const key = `${verseNumber}-segment-${charOffset}`;
+        charOffset += segment.length;
+        return (
+          <span
+            key={key}
+            className={i % 2 === 1 ? 'bg-gold/25 text-cream-bright px-1 rounded-sm' : ''}
+          >
+            {segment}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
 export function Verse({ 
   verses,
-  index, 
+  groupIndex, 
   bookName, 
   chapter,
   isOldTestament = false,
@@ -37,27 +68,11 @@ export function Verse({
   const activeQuery = isHighlighted && highlightQuery ? highlightQuery.trim() : '';
   const highlightRegex = activeQuery ? new RegExp(`(${escapeRegExp(activeQuery)})`, 'gi') : null;
 
-  const renderVerseText = (verseNumber: number, verseText: string) => {
-    if (!highlightRegex || highlightedVerse !== verseNumber) {
-      return verseText;
-    }
-
-    return verseText.split(highlightRegex).map((segment, i) => (
-      <span
-        key={`${verseNumber}-segment-${i}`}
-        className={i % 2 === 1 ? 'bg-gold/25 text-cream-bright px-1 rounded-sm' : ''}
-      >
-        {segment}
-      </span>
-    ));
-  };
-
   useEffect(() => {
     const el = verseRef.current;
     const header = headerRef.current;
     if (!el) return;
 
-    // Initial states
     gsap.set(el, { opacity: 0, y: 60 });
     if (header) {
       gsap.set(header, { opacity: 0, y: -15 });
@@ -66,7 +81,6 @@ export function Verse({
       gsap.set(numberRef.current, { opacity: 0, scale: 0.8 });
     }
 
-    // Entrance animation
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: el,
@@ -95,7 +109,6 @@ export function Verse({
       ease: 'back.out(1.5)',
     }, '<0.2');
 
-    // Exit fade animation
     const tlFade = gsap.timeline({
       scrollTrigger: {
         trigger: el,
@@ -120,7 +133,7 @@ export function Verse({
         .filter((st) => st.trigger === el)
         .forEach((st) => st.kill());
     };
-  }, [index]);
+  }, [groupIndex]);
 
   return (
     <>
@@ -191,14 +204,14 @@ export function Verse({
             >
               {verses.map((verse, verseIndex) => (
                 <span
-                  key={`${index}-verse-${verse.number}`}
+                  key={`${groupIndex}-verse-${verse.number}`}
                   data-verse-number={verse.number}
                   className="inline"
                 >
                   <sup className="font-sans text-[11px] text-gold/65 tracking-[0.05em] mr-1 align-super">
                     {verse.number}
                   </sup>
-                  {renderVerseText(verse.number, verse.text)}
+                  <VerseText verseNumber={verse.number} verseText={verse.text} highlightRegex={highlightRegex} highlightedVerse={highlightedVerse} />
                   {verseIndex < verses.length - 1 && ' '}
                 </span>
               ))}

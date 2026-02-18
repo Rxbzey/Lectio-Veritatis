@@ -4,23 +4,23 @@ import { persist } from 'zustand/middleware';
 export type ChapterStatus = 'unread' | 'in-progress' | 'completed';
 export type BookStatus = 'unread' | 'in-progress' | 'completed';
 
-export interface ChapterProgress {
+interface ChapterProgress {
   status: ChapterStatus;
   scrollPct: number;
   lastVerse: number;
   updatedAt: number;
 }
 
-export interface BookProgress {
+interface BookProgress {
   chapters: Record<number, ChapterProgress>;
 }
 
-export interface BookSummary {
+interface BookSummary {
   tracked: number;
   completed: number;
 }
 
-export interface ReadingProgressData {
+interface ReadingProgressData {
   books: Record<string, BookProgress>;
   summaries: Record<string, BookSummary>;
   lastPosition: {
@@ -29,7 +29,7 @@ export interface ReadingProgressData {
   } | null;
 }
 
-export interface ReadingProgressStore extends ReadingProgressData {
+interface ReadingProgressStore extends ReadingProgressData {
   updateChapterScroll: (book: string, chapter: number, scrollPct: number, lastVerse: number, totalVerses: number) => void;
   markChapterCompleted: (book: string, chapter: number, lastVerse?: number) => void;
   getChapterStatus: (book: string, chapter: number) => ChapterStatus;

@@ -46,7 +46,7 @@ export interface SearchResult {
   text: string;
 }
 
-export interface SearchResponse {
+interface SearchResponse {
   occurrence: number;
   version: string;
   verses: SearchResult[];
@@ -78,7 +78,7 @@ interface BibleDataset {
 }
 
 let datasetPromise: Promise<BibleDataset> | null = null;
-export const BOOK_ORDER: string[] = [];
+const BOOK_ORDER: string[] = [];
 
 function waitForNextTick() {
   return new Promise((resolve) => setTimeout(resolve, 0));

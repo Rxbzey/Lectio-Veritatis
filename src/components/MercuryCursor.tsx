@@ -3,12 +3,12 @@ import gsap from 'gsap';
 
 export function MercuryCursor() {
   const lightRef = useRef<HTMLDivElement>(null);
+  const moveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     const light = lightRef.current;
     if (!light) return;
 
-    // Breathing glow — a quiet flame seeking God
     gsap.to(light, {
       boxShadow: '0 0 20px 6px rgba(201,168,76,0.35), 0 0 40px 12px rgba(201,168,76,0.1)',
       duration: 2.5,
@@ -18,6 +18,12 @@ export function MercuryCursor() {
     });
 
     const onMove = (e: MouseEvent) => {
+      light.style.willChange = 'transform';
+      clearTimeout(moveTimeoutRef.current);
+      moveTimeoutRef.current = setTimeout(() => {
+        light.style.willChange = 'auto';
+      }, 150);
+
       gsap.to(light, {
         x: e.clientX,
         y: e.clientY,
@@ -75,6 +81,7 @@ export function MercuryCursor() {
     observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
+      clearTimeout(moveTimeoutRef.current);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mousedown', onDown);
       window.removeEventListener('mouseup', onUp);
@@ -99,7 +106,6 @@ export function MercuryCursor() {
           left: -5,
           background: 'rgba(201, 168, 76, 0.7)',
           boxShadow: '0 0 14px 4px rgba(201,168,76,0.25), 0 0 30px 8px rgba(201,168,76,0.08)',
-          willChange: 'transform',
         }}
       />
     </div>
