@@ -12,7 +12,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'robots.txt', 'sitemap.xml'],
       manifest: {
-        name: 'Living Scripture',
+        name: 'Lectio Veritatis',
         short_name: 'Biblia',
         description: 'Lectura inmersiva de la Biblia Latinoamericana.',
         start_url: '/',

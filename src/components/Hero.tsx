@@ -96,8 +96,8 @@ export function Hero({ onGetStarted, onExploreBooks, onContinueReading, continue
           ref={titleRef}
           className="font-serif text-5xl sm:text-6xl md:text-8xl lg:text-9xl xl:text-[9.5rem] text-cream-bright leading-[0.85] tracking-[-0.02em]"
         >
-          The Living<br />
-          <span className="italic text-gold/80">Scripture</span>
+          Lectio<br />
+          <span className="italic text-gold/80">Veritatis</span>
         </h1>
 
         <div className="w-full flex flex-col items-center gap-6 sm:gap-8 transform translate-y-8 md:translate-y-16">

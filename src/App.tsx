@@ -141,7 +141,7 @@ function AppInner() {
 
 
   return (
-    <div lang="es" role="application" aria-label="The Living Scripture — Biblia Latinoamericana Digital">
+    <div lang="es" role="application" aria-label="Lectio Veritatis — Biblia Latinoamericana Digital">
       <SpeedInsights />
       <Suspense fallback={null}>
         <MercuryCursor />
