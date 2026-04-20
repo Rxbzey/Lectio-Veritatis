@@ -1,4 +1,5 @@
 import { lazy, Suspense, useReducer, useCallback, useMemo } from 'react';
+import { Router, useLocation } from 'wouter';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { useSmoothScroll } from '@/hooks/useSmoothScroll';
 import { useReadingProgressStore, selectResumeTarget } from '@/hooks/useReadingProgress';
@@ -6,37 +7,31 @@ import { DynamicNavbar } from '@/components/DynamicNavbar';
 import type { ChapterResponse } from '@/lib/api';
 import { useOfflineSupport } from '@/hooks/useOfflineSupport';
 import { useReadingProgressSyncActions } from '@/hooks/useReadingProgressSyncActions';
-
-type AppView = 'home' | 'reader';
+import { useAppRoute, pathFor } from '@/lib/appRoute';
 
 type State = {
-  view: AppView;
-  currentBook: string;
-  currentChapter: number;
   indexOpen: boolean;
   chapterPickerBook: string | null;
+  chapterPickerChapter: number | null;
   orbMode: 'index' | 'search';
   searchTarget: { book: string; chapter: number; verse: number; query: string; token: number } | null;
   chapterMeta: { bookName: string; totalVerses: number };
 };
 
 type Action =
-  | { type: 'GO_TO_READER'; book: string; chapter: number }
-  | { type: 'GO_HOME' }
-  | { type: 'CHAPTER_CHANGE'; book: string; chapter: number }
   | { type: 'CHAPTER_LOADED'; bookName: string; totalVerses: number }
   | { type: 'SEARCH_NAVIGATE'; book: string; chapter: number; verse: number; query: string; token: number }
   | { type: 'OPEN_BOOKS' }
   | { type: 'OPEN_SEARCH' }
   | { type: 'OPEN_CHAPTERS'; book: string }
-  | { type: 'CLOSE_INDEX' };
+  | { type: 'OPEN_VERSES'; book: string; chapter: number }
+  | { type: 'CLOSE_INDEX' }
+  | { type: 'RESET_READER_META' };
 
 const initialState: State = {
-  view: 'home',
-  currentBook: 'genesis',
-  currentChapter: 1,
   indexOpen: false,
   chapterPickerBook: null,
+  chapterPickerChapter: null,
   orbMode: 'index',
   searchTarget: null,
   chapterMeta: { bookName: '', totalVerses: 0 },
@@ -44,24 +39,22 @@ const initialState: State = {
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case 'GO_TO_READER':
-      return { ...state, view: 'reader', currentBook: action.book, currentChapter: action.chapter };
-    case 'GO_HOME':
-      return { ...state, view: 'home', chapterMeta: { bookName: '', totalVerses: 0 }, indexOpen: false, chapterPickerBook: null, orbMode: 'index' };
-    case 'CHAPTER_CHANGE':
-      return { ...state, currentBook: action.book, currentChapter: action.chapter };
     case 'CHAPTER_LOADED':
       return { ...state, chapterMeta: { bookName: action.bookName, totalVerses: action.totalVerses } };
     case 'SEARCH_NAVIGATE':
       return { ...state, searchTarget: { book: action.book, chapter: action.chapter, verse: action.verse, query: action.query, token: action.token } };
     case 'OPEN_BOOKS':
-      return { ...state, orbMode: 'index', chapterPickerBook: null, indexOpen: true };
+      return { ...state, orbMode: 'index', chapterPickerBook: null, chapterPickerChapter: null, indexOpen: true };
     case 'OPEN_SEARCH':
-      return { ...state, orbMode: 'search', chapterPickerBook: null, indexOpen: true };
+      return { ...state, orbMode: 'search', chapterPickerBook: null, chapterPickerChapter: null, indexOpen: true };
     case 'OPEN_CHAPTERS':
-      return { ...state, orbMode: 'index', chapterPickerBook: action.book, indexOpen: true };
+      return { ...state, orbMode: 'index', chapterPickerBook: action.book, chapterPickerChapter: null, indexOpen: true };
+    case 'OPEN_VERSES':
+      return { ...state, orbMode: 'index', chapterPickerBook: action.book, chapterPickerChapter: action.chapter, indexOpen: true };
     case 'CLOSE_INDEX':
-      return { ...state, indexOpen: false, chapterPickerBook: null };
+      return { ...state, indexOpen: false, chapterPickerBook: null, chapterPickerChapter: null };
+    case 'RESET_READER_META':
+      return { ...state, chapterMeta: { bookName: '', totalVerses: 0 } };
   }
 }
 
@@ -72,9 +65,12 @@ const FilmGrain = lazy(() => import('@/components/FilmGrain').then((module) => (
 const MercuryCursor = lazy(() => import('@/components/MercuryCursor').then((module) => ({ default: module.MercuryCursor })));
 const DialNavigation = lazy(() => import('@/components/DialNavigation').then((module) => ({ default: module.DialNavigation })));
 
-function App() {
+function AppInner() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { view, currentBook, currentChapter, indexOpen, chapterPickerBook, orbMode, searchTarget, chapterMeta } = state;
+  const { indexOpen, chapterPickerBook, chapterPickerChapter, orbMode, searchTarget, chapterMeta } = state;
+  const route = useAppRoute();
+  const [, setLocation] = useLocation();
+  const { view, book: currentBook, chapter: currentChapter, verse: currentVerse } = route;
   useSmoothScroll();
   const { isOnline } = useOfflineSupport();
   const updateChapterScroll = useReadingProgressStore((state) => state.updateChapterScroll);
@@ -86,21 +82,25 @@ function App() {
   const resumeTarget = useReadingProgressStore(selectResumeTarget);
   const { markChapterCompleted } = useReadingProgressSyncActions(isOnline);
 
-  const goToReader = useCallback((abbrev: string, chapter: number) => {
-    dispatch({ type: 'GO_TO_READER', book: abbrev, chapter });
+  const goToReader = useCallback((abbrev: string, chapter: number, verse?: number | null) => {
+    setLocation(pathFor(abbrev, chapter, verse));
     setLastPosition(abbrev, chapter);
-    window.scrollTo({ top: 0 });
-  }, [setLastPosition]);
+    if (!verse) {
+      window.scrollTo({ top: 0 });
+    }
+  }, [setLocation, setLastPosition]);
 
   const goHome = useCallback(() => {
-    dispatch({ type: 'GO_HOME' });
+    setLocation('/');
+    dispatch({ type: 'RESET_READER_META' });
+    dispatch({ type: 'CLOSE_INDEX' });
     window.scrollTo({ top: 0 });
-  }, []);
+  }, [setLocation]);
 
   const handleChapterChange = useCallback((abbrev: string, chapter: number) => {
-    dispatch({ type: 'CHAPTER_CHANGE', book: abbrev, chapter });
+    setLocation(pathFor(abbrev, chapter));
     setLastPosition(abbrev, chapter);
-  }, [setLastPosition]);
+  }, [setLocation, setLastPosition]);
 
   const handleChapterLoaded = useCallback((data: ChapterResponse) => {
     dispatch({ type: 'CHAPTER_LOADED', bookName: data.book.name, totalVerses: data.verses.length });
@@ -108,14 +108,28 @@ function App() {
 
   const handleSearchNavigate = useCallback((abbrev: string, chapter: number, verse: number, query: string) => {
     dispatch({ type: 'SEARCH_NAVIGATE', book: abbrev, chapter, verse, query, token: Date.now() });
-    goToReader(abbrev, chapter);
-  }, [goToReader]);
+    setLocation(pathFor(abbrev, chapter, verse));
+    setLastPosition(abbrev, chapter);
+  }, [setLocation, setLastPosition]);
 
   const activeHighlight = useMemo(() => {
-    if (!searchTarget) return null;
-    if (searchTarget.book !== currentBook || searchTarget.chapter !== currentChapter) return null;
-    return { verse: searchTarget.verse, query: searchTarget.query, token: searchTarget.token };
-  }, [searchTarget, currentBook, currentChapter]);
+    if (
+      searchTarget &&
+      searchTarget.book === currentBook &&
+      searchTarget.chapter === currentChapter &&
+      (currentVerse == null || searchTarget.verse === currentVerse)
+    ) {
+      return { verse: searchTarget.verse, query: searchTarget.query, token: searchTarget.token };
+    }
+    if (currentVerse != null) {
+      return {
+        verse: currentVerse,
+        query: '',
+        token: `v-${currentBook}-${currentChapter}-${currentVerse}`,
+      };
+    }
+    return null;
+  }, [searchTarget, currentBook, currentChapter, currentVerse]);
 
   const openBooks = useCallback(() => {
     dispatch({ type: 'OPEN_BOOKS' });
@@ -153,9 +167,11 @@ function App() {
           </Suspense>
         )}
 
+
         {view === 'reader' && (
           <Suspense fallback={<div className="min-h-screen" />}>
             <ScriptureReader
+              key={`${currentBook}-${currentChapter}`}
               bookAbbrev={currentBook}
               chapter={currentChapter}
               onChapterChange={handleChapterChange}
@@ -163,8 +179,8 @@ function App() {
               onGoHome={goHome}
               onScrollProgress={updateChapterScroll}
               onChapterCompleted={markChapterCompleted}
-              initialScrollPct={getChapterScrollPct(currentBook, currentChapter)}
-              initialLastVerse={getChapterLastVerse(currentBook, currentChapter)}
+              initialScrollPct={currentVerse != null ? 0 : getChapterScrollPct(currentBook, currentChapter)}
+              initialLastVerse={currentVerse != null ? 0 : getChapterLastVerse(currentBook, currentChapter)}
               highlightFocus={activeHighlight}
             />
           </Suspense>
@@ -178,10 +194,13 @@ function App() {
               key={orbMode === 'search' ? 'orb-search' : 'orb-index'}
               isOpen={indexOpen}
               onClose={() => dispatch({ type: 'CLOSE_INDEX' })}
-              onNavigate={(abbrev, chapter) => goToReader(abbrev, chapter)}
+              onNavigate={(abbrev, chapter, verse) => goToReader(abbrev, chapter, verse)}
               currentBook={currentBook}
               currentChapter={currentChapter}
+              currentVerse={currentVerse}
               initialBook={chapterPickerBook}
+              initialChapter={chapterPickerChapter}
+              currentChapterTotalVerses={chapterMeta.totalVerses}
               getChapterStatus={getChapterStatus}
               getBookStatus={getBookStatus}
               initialMode={orbMode}
@@ -196,13 +215,23 @@ function App() {
         <DialNavigation
           view={view}
           currentBook={currentBook}
+          currentChapter={currentChapter}
           onGoHome={goHome}
           onOpenBooks={openBooks}
           onOpenChapters={(abbrev) => dispatch({ type: 'OPEN_CHAPTERS', book: abbrev })}
+          onOpenVerses={(abbrev, chapter) => dispatch({ type: 'OPEN_VERSES', book: abbrev, chapter })}
           onOpenSearch={openSearch}
         />
       </Suspense>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppInner />
+    </Router>
   );
 }
 

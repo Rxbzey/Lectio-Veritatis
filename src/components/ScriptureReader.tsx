@@ -11,7 +11,7 @@ gsap.registerPlugin(ScrollTrigger);
 interface HighlightFocusState {
   verse: number;
   query: string;
-  token: number;
+  token: number | string;
 }
 
 interface ScriptureReaderProps {
@@ -407,6 +407,7 @@ export function ScriptureReader({
 
   useEffect(() => {
     if (!highlightFocus) return;
+    if (loading || !chapterData) return;
     if (!containerRef.current) return;
     const verseEl = containerRef.current.querySelector(`[data-verse-number="${highlightFocus.verse}"]`);
     if (verseEl instanceof HTMLElement) {
@@ -417,7 +418,7 @@ export function ScriptureReader({
         { scale: 1, duration: 0.6, ease: 'power2.out', overwrite: true }
       );
     }
-  }, [highlightFocus]);
+  }, [highlightFocus, loading, chapterData]);
 
   const verseParagraphs = useMemo(
     () => (chapterData ? groupVersesByWordLimit(chapterData.verses, MAX_WORDS_PER_PARAGRAPH) : []),

@@ -8,31 +8,31 @@ type AppView = 'home' | 'reader';
 interface DialNavigationProps {
   view: AppView;
   currentBook: string;
+  currentChapter: number;
   onGoHome: () => void;
   onOpenBooks: () => void;
   onOpenChapters: (abbrev: string) => void;
+  onOpenVerses?: (abbrev: string, chapter: number) => void;
   onOpenSearch?: () => void;
 }
 
-const RADIUS = 96;
-const START_ANGLE = -90;
+const ITEM_GAP = 56;
 
-function getPosition(index: number, count: number) {
-  const spread = count > 1 ? 90 : 0;
-  const angleDeg = START_ANGLE - (count > 1 ? (index * spread) / (count - 1) : 0);
-  const angleRad = (angleDeg * Math.PI) / 180;
+function getPosition(index: number) {
   return {
-    x: Math.cos(angleRad) * RADIUS,
-    y: Math.sin(angleRad) * RADIUS,
+    x: 0,
+    y: -(index + 1) * ITEM_GAP,
   };
 }
 
 export function DialNavigation({
   view,
   currentBook,
+  currentChapter,
   onGoHome,
   onOpenBooks,
   onOpenChapters,
+  onOpenVerses,
   onOpenSearch,
 }: DialNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -43,11 +43,15 @@ export function DialNavigation({
   const handleShowChapters = useCallback(() => {
     onOpenChapters(currentBook);
   }, [currentBook, onOpenChapters]);
+  const handleShowVerses = useCallback(() => {
+    onOpenVerses?.(currentBook, currentChapter);
+  }, [currentBook, currentChapter, onOpenVerses]);
   const actions = useDialActions({
     isReader,
     onGoHome,
     onOpenBooks,
     onShowChapters: handleShowChapters,
+    onShowVerses: onOpenVerses ? handleShowVerses : undefined,
     onOpenSearch,
   });
 
@@ -56,11 +60,6 @@ export function DialNavigation({
   }, []);
 
   const handleAction = useCallback((action: DialAction) => {
-    if (action.id === 'chapters') {
-      setIsOpen(false);
-      action.onClick();
-      return;
-    }
     setIsOpen(false);
     action.onClick();
   }, []);
@@ -77,7 +76,7 @@ export function DialNavigation({
       }
       validItems.forEach((el, i) => {
         if (!el) return;
-        const pos = getPosition(i, actions.length);
+        const pos = getPosition(i);
         gsap.fromTo(
           el,
           { x: 0, y: 0, scale: 0, opacity: 0 },

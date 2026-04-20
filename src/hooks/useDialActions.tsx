@@ -13,10 +13,11 @@ interface UseDialActionsParams {
   onGoHome: () => void;
   onOpenBooks: () => void;
   onShowChapters: () => void;
+  onShowVerses?: () => void;
   onOpenSearch?: () => void;
 }
 
-export function useDialActions({ isReader, onGoHome, onOpenBooks, onShowChapters, onOpenSearch }: UseDialActionsParams): DialAction[] {
+export function useDialActions({ isReader, onGoHome, onOpenBooks, onShowChapters, onShowVerses, onOpenSearch }: UseDialActionsParams): DialAction[] {
   return useMemo(() => {
     const actions: DialAction[] = [
       {
@@ -73,8 +74,25 @@ export function useDialActions({ isReader, onGoHome, onOpenBooks, onShowChapters
         ),
         onClick: onShowChapters,
       });
+
+      if (onShowVerses) {
+        actions.push({
+          id: 'verses',
+          label: 'Versículo',
+          icon: (
+            <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 6h12" />
+              <path d="M4 12h16" />
+              <path d="M4 18h9" />
+              <circle cx="19.5" cy="6" r="1.2" fill="currentColor" stroke="none" />
+              <circle cx="16.5" cy="18" r="1.2" fill="currentColor" stroke="none" />
+            </svg>
+          ),
+          onClick: onShowVerses,
+        });
+      }
     }
 
     return actions;
-  }, [isReader, onGoHome, onOpenBooks, onShowChapters, onOpenSearch]);
+  }, [isReader, onGoHome, onOpenBooks, onShowChapters, onShowVerses, onOpenSearch]);
 }
