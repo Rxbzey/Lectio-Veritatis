@@ -15,7 +15,6 @@ interface PWAInstallState {
 
 const AUTO_TRIGGER_PARAM = 'install';
 const AUTO_TRIGGER_VALUE = 'true';
-const AUTO_TRIGGER_DELAY_MS = 500;
 
 function isStandaloneDisplay(): boolean {
   if (typeof window === 'undefined') return false;
@@ -77,9 +76,7 @@ export function usePWAInstall() {
 
       if (!autoTriggeredRef.current && hasAutoInstallFlag()) {
         autoTriggeredRef.current = true;
-        window.setTimeout(() => {
-          void triggerInstall();
-        }, AUTO_TRIGGER_DELAY_MS);
+        void triggerInstall();
       }
     };
 

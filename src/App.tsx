@@ -2,9 +2,9 @@ import { lazy, Suspense, useReducer, useCallback, useMemo } from 'react';
 import { Router, useLocation } from 'wouter';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { useSmoothScroll } from '@/hooks/useSmoothScroll';
-import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { useReadingProgressStore, selectResumeTarget } from '@/hooks/useReadingProgress';
 import { DynamicNavbar } from '@/components/DynamicNavbar';
+import { PWAInstallToast } from '@/components/PWAInstallToast';
 import type { ChapterResponse } from '@/lib/api';
 import { useOfflineSupport } from '@/hooks/useOfflineSupport';
 import { useReadingProgressSyncActions } from '@/hooks/useReadingProgressSyncActions';
@@ -73,7 +73,6 @@ function AppInner() {
   const [, setLocation] = useLocation();
   const { view, book: currentBook, chapter: currentChapter, verse: currentVerse } = route;
   useSmoothScroll();
-  usePWAInstall();
   const { isOnline } = useOfflineSupport();
   const updateChapterScroll = useReadingProgressStore((state) => state.updateChapterScroll);
   const getChapterScrollPct = useReadingProgressStore((state) => state.getChapterScrollPct);
@@ -144,6 +143,7 @@ function AppInner() {
 
   return (
     <div lang="es" role="application" aria-label="Lectio Veritatis — Biblia Latinoamericana Digital">
+      <PWAInstallToast />
       <SpeedInsights />
       <Suspense fallback={null}>
         <MercuryCursor />
