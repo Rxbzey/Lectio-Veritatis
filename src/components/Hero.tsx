@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { MagneticButton } from '@/components/MagneticButton';
-import { getRandomVerse } from '@/data/bibleVerses';
+import { getRandomVerse, type BibleVerse } from '@/data/bibleVerses';
 
 interface HeroProps {
   onGetStarted: () => void;
@@ -18,8 +18,22 @@ export function Hero({ onGetStarted, onExploreBooks, onContinueReading, continue
   const descRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
 
-  const verse = useMemo(() => getRandomVerse(), []);
+  const [verse, setVerse] = useState<BibleVerse | null>(null);
   const hasProgress = Boolean(onContinueReading && continueTarget);
+
+  useEffect(() => {
+    let cancelled = false;
+    getRandomVerse()
+      .then((v) => {
+        if (!cancelled) setVerse(v);
+      })
+      .catch(() => {
+        // si falla, dejamos el placeholder vacio sin romper la UI
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const formatBook = (value: string) =>
     value
@@ -107,10 +121,10 @@ export function Hero({ onGetStarted, onExploreBooks, onContinueReading, continue
             className="text-center max-w-xl mx-auto mb-12 md:mb-16"
           >
             <p className="font-serif italic text-sm md:text-base text-cream/90 leading-relaxed">
-              “{verse.text}”
+              {verse ? `“${verse.text}”` : ' '}
             </p>
             <span className="block mt-3 font-serif text-[10px] md:text-xs tracking-[0.3em] uppercase text-gold">
-              {verse.reference}
+              {verse?.reference ?? ' '}
             </span>
           </div>
 
