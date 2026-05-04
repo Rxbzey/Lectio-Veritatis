@@ -12,6 +12,8 @@ interface VerseProps {
   isOldTestament?: boolean;
   highlightedVerse?: number;
   highlightQuery?: string;
+  selectionRange?: { start: number; end: number } | null;
+  activeSelectionRange?: { start: number; end: number } | null;
 }
 
 function escapeRegExp(value: string) {
@@ -57,6 +59,8 @@ export function Verse({
   isOldTestament = false,
   highlightedVerse,
   highlightQuery,
+  selectionRange = null,
+  activeSelectionRange = null,
 }: VerseProps) {
   const verseRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -65,6 +69,8 @@ export function Verse({
   const rangeStart = verses[0]?.number ?? 0;
   const rangeEnd = verses[verses.length - 1]?.number ?? rangeStart;
   const isHighlighted = highlightedVerse != null && verses.some((verse) => verse.number === highlightedVerse);
+  const isInRange = (n: number, r: { start: number; end: number } | null) =>
+    r != null && n >= r.start && n <= r.end;
   const activeQuery = isHighlighted && highlightQuery ? highlightQuery.trim() : '';
   const highlightRegex = activeQuery ? new RegExp(`(${escapeRegExp(activeQuery)})`, 'gi') : null;
 
@@ -148,7 +154,7 @@ export function Verse({
         ref={verseRef}
         data-verse-range={`${rangeStart}-${rangeEnd}`}
         className={`min-h-[45vh] md:min-h-[55vh] flex items-center justify-center py-12 md:py-20 will-change-transform transition-colors duration-600 ${
-          isHighlighted ? 'bg-gold/5' : ''
+          isHighlighted || verses.some((v) => isInRange(v.number, selectionRange) || isInRange(v.number, activeSelectionRange)) ? 'bg-gold/5' : ''
         }`}
       >
         <div className={`w-full max-w-3xl mx-auto px-8 md:px-16 lg:px-20 ${isHighlighted ? 'rounded-3xl bg-cream/2 shadow-[0_0_50px_rgba(201,168,76,0.12)]' : ''}`}>
@@ -202,19 +208,28 @@ export function Verse({
                 isHighlighted ? 'text-cream-bright' : 'text-cream-bright/85'
               } verse-paragraph`}
             >
-              {verses.map((verse, verseIndex) => (
-                <span
-                  key={`${groupIndex}-verse-${verse.number}`}
-                  data-verse-number={verse.number}
-                  className="inline"
-                >
-                  <sup className="font-sans text-[11px] text-gold/65 tracking-[0.05em] mr-1 align-super">
-                    {verse.number}
-                  </sup>
-                  <VerseText verseNumber={verse.number} verseText={verse.text} highlightRegex={highlightRegex} highlightedVerse={highlightedVerse} />
-                  {verseIndex < verses.length - 1 && ' '}
-                </span>
-              ))}
+              {verses.map((verse, verseIndex) => {
+                const inStatic = isInRange(verse.number, selectionRange);
+                const inActive = isInRange(verse.number, activeSelectionRange);
+                const markedClass = inActive
+                  ? 'bg-gold/25 text-cream-bright rounded px-0.5 transition-colors'
+                  : inStatic
+                  ? 'bg-gold/15 text-cream-bright rounded px-0.5 transition-colors'
+                  : '';
+                return (
+                  <span
+                    key={`${groupIndex}-verse-${verse.number}`}
+                    data-verse-number={verse.number}
+                    className={`inline ${markedClass}`}
+                  >
+                    <sup className="font-sans text-[11px] text-gold/65 tracking-[0.05em] mr-1 align-super">
+                      {verse.number}
+                    </sup>
+                    <VerseText verseNumber={verse.number} verseText={verse.text} highlightRegex={highlightRegex} highlightedVerse={highlightedVerse} />
+                    {verseIndex < verses.length - 1 && ' '}
+                  </span>
+                );
+              })}
             </p>
           </div>
 

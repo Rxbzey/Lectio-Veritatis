@@ -71,7 +71,7 @@ function AppInner() {
   const { indexOpen, chapterPickerBook, chapterPickerChapter, orbMode, searchTarget, chapterMeta } = state;
   const route = useAppRoute();
   const [, setLocation] = useLocation();
-  const { view, book: currentBook, chapter: currentChapter, verse: currentVerse } = route;
+  const { view, book: currentBook, chapter: currentChapter, verse: currentVerse, verseEnd: currentVerseEnd } = route;
   useSmoothScroll();
   const { isOnline } = useOfflineSupport();
   const updateChapterScroll = useReadingProgressStore((state) => state.updateChapterScroll);
@@ -184,6 +184,7 @@ function AppInner() {
               initialScrollPct={currentVerse != null ? 0 : getChapterScrollPct(currentBook, currentChapter)}
               initialLastVerse={currentVerse != null ? 0 : getChapterLastVerse(currentBook, currentChapter)}
               highlightFocus={activeHighlight}
+              urlRange={currentVerse && currentVerseEnd ? { start: currentVerse, end: currentVerseEnd } : null}
             />
           </Suspense>
         )}

@@ -8,6 +8,7 @@ export interface AppRoute {
   book: string;
   chapter: number;
   verse: number | null;
+  verseEnd: number | null;
 }
 
 export const DEFAULT_ROUTE: AppRoute = {
@@ -15,6 +16,7 @@ export const DEFAULT_ROUTE: AppRoute = {
   book: 'genesis',
   chapter: 1,
   verse: null,
+  verseEnd: null,
 };
 
 function isValidSlug(value: string): boolean {
@@ -33,10 +35,20 @@ export function parseRoute(path: string): AppRoute {
   if (!rawChapter || !Number.isInteger(chapter) || chapter < 1) return DEFAULT_ROUTE;
 
   let verse: number | null = null;
+  let verseEnd: number | null = null;
   if (rawVerse) {
-    const parsedVerse = Number(rawVerse);
-    if (Number.isInteger(parsedVerse) && parsedVerse > 0) {
-      verse = parsedVerse;
+    const rangeMatch = rawVerse.match(/^(\d+)(?:-(\d+))?$/);
+    if (rangeMatch) {
+      const start = Number(rangeMatch[1]);
+      if (Number.isInteger(start) && start > 0) {
+        verse = start;
+        if (rangeMatch[2]) {
+          const end = Number(rangeMatch[2]);
+          if (Number.isInteger(end) && end >= start) {
+            verseEnd = end;
+          }
+        }
+      }
     }
   }
 
@@ -45,12 +57,23 @@ export function parseRoute(path: string): AppRoute {
     book: rawBook,
     chapter,
     verse,
+    verseEnd,
   };
 }
 
-export function pathFor(book: string, chapter: number, verse?: number | null): string {
+export function pathFor(
+  book: string,
+  chapter: number,
+  verse?: number | null,
+  verseEnd?: number | null,
+): string {
   if (!book) return '/';
-  if (verse && verse > 0) return `/${book}/${chapter}/${verse}`;
+  if (verse && verse > 0) {
+    if (verseEnd && verseEnd > verse) {
+      return `/${book}/${chapter}/${verse}-${verseEnd}`;
+    }
+    return `/${book}/${chapter}/${verse}`;
+  }
   return `/${book}/${chapter}`;
 }
 

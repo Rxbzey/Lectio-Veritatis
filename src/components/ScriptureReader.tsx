@@ -5,6 +5,8 @@ import { getChapter, getNextChapter } from '@/lib/api';
 import type { ChapterResponse } from '@/lib/api';
 import { Verse } from '@/components/Verse';
 import { ChapterTransition } from '@/components/ChapterTransition';
+import { ShareSheet } from '@/components/ShareSheet';
+import { useVerseSelection } from '@/hooks/useVerseSelection';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -12,6 +14,11 @@ interface HighlightFocusState {
   verse: number;
   query: string;
   token: number | string;
+}
+
+export interface VerseRange {
+  start: number;
+  end: number;
 }
 
 interface ScriptureReaderProps {
@@ -25,6 +32,7 @@ interface ScriptureReaderProps {
   initialScrollPct?: number;
   initialLastVerse?: number;
   highlightFocus?: HighlightFocusState | null;
+  urlRange?: VerseRange | null;
 }
 
 const MAX_WORDS_PER_PARAGRAPH = 100;
@@ -227,6 +235,7 @@ export function ScriptureReader({
   initialScrollPct = 0,
   initialLastVerse = 0,
   highlightFocus = null,
+  urlRange = null,
 }: ScriptureReaderProps) {
   const [chapterData, setChapterData] = useState<ChapterResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -425,6 +434,12 @@ export function ScriptureReader({
     [chapterData]
   );
 
+  const { range: userSelection, isDragging, clear: clearSelection } = useVerseSelection(
+    containerRef,
+    !loading && !!chapterData,
+  );
+  const shareRange = !isDragging && userSelection ? userSelection : null;
+
   if (error) {
     return <ScriptureReaderError error={error} onRetry={() => loadChapter(bookAbbrev, chapter)} />;
   }
@@ -473,6 +488,8 @@ export function ScriptureReader({
                 isOldTestament={chapterData.book.group === 'Antiguo Testamento'}
                 highlightedVerse={groupHasHighlight ? highlightFocus?.verse : undefined}
                 highlightQuery={groupHasHighlight ? highlightFocus?.query : undefined}
+                selectionRange={urlRange}
+                activeSelectionRange={userSelection}
               />
             );
           })}
@@ -480,6 +497,18 @@ export function ScriptureReader({
 
         <ChapterEnd chapterData={chapterData} nextChapter={nextChapter} onGoHome={onGoHome} onNextChapter={handleNextChapter} />
       </div>
+
+      {shareRange && (
+        <ShareSheet
+          bookName={chapterData.book.name}
+          bookAbbrev={bookAbbrev}
+          chapter={chapter}
+          rangeStart={shareRange.start}
+          rangeEnd={shareRange.end}
+          verses={chapterData.verses.filter((v) => v.number >= shareRange.start && v.number <= shareRange.end)}
+          onClose={clearSelection}
+        />
+      )}
     </>
   );
 }
