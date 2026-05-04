@@ -36,6 +36,8 @@ export default defineConfig({
         skipWaiting: true,
         globPatterns: ['**/*.{js,css,html,svg,png,ico,txt,xml,json}'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api\//, /^\/assets\//, /\.[a-zA-Z0-9]+$/],
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.destination === 'document',

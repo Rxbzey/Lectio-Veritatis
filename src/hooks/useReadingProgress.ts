@@ -41,8 +41,25 @@ interface ReadingProgressStore extends ReadingProgressData {
   getResumeTarget: () => { book: string; chapter: number } | null;
 }
 
+let lastComputedLatest: { book: string; chapter: number } | null = null;
+
+function getStableLatestChapter(books: Record<string, BookProgress>) {
+  const next = computeLatestChapter(books);
+  if (
+    next === lastComputedLatest ||
+    (next != null &&
+      lastComputedLatest != null &&
+      next.book === lastComputedLatest.book &&
+      next.chapter === lastComputedLatest.chapter)
+  ) {
+    return lastComputedLatest;
+  }
+  lastComputedLatest = next;
+  return next;
+}
+
 export const selectResumeTarget = (state: ReadingProgressStore) =>
-  state.lastPosition ?? computeLatestChapter(state.books);
+  state.lastPosition ?? getStableLatestChapter(state.books);
 
 const STORAGE_KEY = 'living-scripture-reading-progress:v2';
 

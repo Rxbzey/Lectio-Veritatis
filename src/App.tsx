@@ -114,6 +114,11 @@ function AppInner() {
     setLastPosition(abbrev, chapter);
   }, [setLocation, setLastPosition]);
 
+  const urlRange = useMemo(
+    () => (currentVerse && currentVerseEnd ? { start: currentVerse, end: currentVerseEnd } : null),
+    [currentVerse, currentVerseEnd],
+  );
+
   const activeHighlight = useMemo(() => {
     if (
       searchTarget &&
@@ -186,7 +191,7 @@ function AppInner() {
               initialScrollPct={currentVerse != null ? 0 : getChapterScrollPct(currentBook, currentChapter)}
               initialLastVerse={currentVerse != null ? 0 : getChapterLastVerse(currentBook, currentChapter)}
               highlightFocus={activeHighlight}
-              urlRange={currentVerse && currentVerseEnd ? { start: currentVerse, end: currentVerseEnd } : null}
+              urlRange={urlRange}
             />
           </Suspense>
         )}
