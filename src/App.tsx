@@ -5,6 +5,7 @@ import { useSmoothScroll } from '@/hooks/useSmoothScroll';
 import { useReadingProgressStore, selectResumeTarget } from '@/hooks/useReadingProgress';
 import { DynamicNavbar } from '@/components/DynamicNavbar';
 import { PWAInstallToast } from '@/components/PWAInstallToast';
+import { PWAUpdateToast } from '@/components/PWAUpdateToast';
 import type { ChapterResponse } from '@/lib/api';
 import { useOfflineSupport } from '@/hooks/useOfflineSupport';
 import { useReadingProgressSyncActions } from '@/hooks/useReadingProgressSyncActions';
@@ -144,6 +145,7 @@ function AppInner() {
   return (
     <div lang="es" role="application" aria-label="Lectio Veritatis — Biblia Latinoamericana Digital">
       <PWAInstallToast />
+      <PWAUpdateToast />
       <SpeedInsights />
       <Suspense fallback={null}>
         <MercuryCursor />
