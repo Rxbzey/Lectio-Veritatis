@@ -26,16 +26,25 @@ export function useVerseSelection(
   const [isDragging, setIsDragging] = useState(false);
 
   const anchorRef = useRef<number | null>(null);
+  const rangeRef = useRef<VerseRange | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
   const activeRef = useRef(false);
+  const tapVerseRef = useRef<number | null>(null);
+
+  // Mirror range to ref so pointer handlers can read latest value without re-binding.
+  useEffect(() => {
+    rangeRef.current = range;
+  }, [range]);
 
   const clear = useCallback(() => {
     setRange(null);
     setIsDragging(false);
     anchorRef.current = null;
+    rangeRef.current = null;
     activeRef.current = false;
     startPosRef.current = null;
+    tapVerseRef.current = null;
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
@@ -61,6 +70,10 @@ export function useVerseSelection(
       cancelLongPress();
       const startX = e.clientX;
       const startY = e.clientY;
+
+      // If a range already exists, mark this pointerdown as a possible tap-to-extend.
+      tapVerseRef.current = rangeRef.current ? verseFromPoint(startX, startY) : null;
+
       longPressTimerRef.current = setTimeout(() => {
         const verse = verseFromPoint(startX, startY);
         if (verse != null) {
@@ -68,6 +81,7 @@ export function useVerseSelection(
           activeRef.current = true;
           setRange({ start: verse, end: verse });
           setIsDragging(true);
+          tapVerseRef.current = null;
           if ('vibrate' in navigator) {
             try { navigator.vibrate?.(15); } catch { /* noop */ }
           }
@@ -81,7 +95,10 @@ export function useVerseSelection(
         if (start) {
           const dx = e.clientX - start.x;
           const dy = e.clientY - start.y;
-          if (Math.hypot(dx, dy) > MOVE_CANCEL_PX) cancelLongPress();
+          if (Math.hypot(dx, dy) > MOVE_CANCEL_PX) {
+            cancelLongPress();
+            tapVerseRef.current = null;
+          }
         }
         return;
       }
@@ -97,12 +114,22 @@ export function useVerseSelection(
 
     const onPointerUp = () => {
       cancelLongPress();
+
+      // Tap-to-extend: existing range + tap on a verse without activating long-press.
+      if (!activeRef.current && tapVerseRef.current != null && rangeRef.current && anchorRef.current != null) {
+        const tapped = tapVerseRef.current;
+        const anchor = anchorRef.current;
+        const start = Math.min(anchor, tapped);
+        const end = Math.max(anchor, tapped);
+        setRange((prev) => (prev && prev.start === start && prev.end === end ? prev : { start, end }));
+      }
+
       if (activeRef.current) {
         setIsDragging(false);
       }
       activeRef.current = false;
-      anchorRef.current = null;
       startPosRef.current = null;
+      tapVerseRef.current = null;
     };
 
     container.addEventListener('pointerdown', onPointerDown);

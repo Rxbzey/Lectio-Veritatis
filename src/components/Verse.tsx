@@ -147,6 +147,10 @@ export function Verse({
         .verse-paragraph {
           word-break: normal;
           overflow-wrap: break-word;
+          -webkit-user-select: none;
+          user-select: none;
+          -webkit-touch-callout: none;
+          -webkit-tap-highlight-color: transparent;
         }
       `}</style>
 
