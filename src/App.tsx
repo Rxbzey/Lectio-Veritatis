@@ -1,6 +1,7 @@
 import { lazy, Suspense, useReducer, useCallback, useMemo } from 'react';
 import { Router, useLocation } from 'wouter';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import { Analytics } from '@vercel/analytics/react';
 import { useSmoothScroll } from '@/hooks/useSmoothScroll';
 import { useReadingProgressStore, selectResumeTarget } from '@/hooks/useReadingProgress';
 import { DynamicNavbar } from '@/components/DynamicNavbar';
@@ -152,6 +153,7 @@ function AppInner() {
       <PWAInstallToast />
       <PWAUpdateToast />
       <SpeedInsights />
+      <Analytics />
       <Suspense fallback={null}>
         <MercuryCursor />
         <FilmGrain />
